@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import AppKit
 
 /// Reads Mail.app using AppleScript (official API)
 class MailParser {
