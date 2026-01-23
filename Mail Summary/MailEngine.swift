@@ -31,7 +31,7 @@ class MailEngine: ObservableObject {
         isScanning = true
 
         Task {
-            var parsed = parser.parseEmails(limit: 500)  // Increase limit to 500
+            var parsed = await parser.parseEmails(limit: 500)  // Now async with timeout
 
             await MainActor.run {
                 self.isCategorizingWithAI = true

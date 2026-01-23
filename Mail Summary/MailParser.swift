@@ -12,8 +12,8 @@ import AppKit
 /// Reads Mail.app using AppleScript (official API)
 class MailParser {
 
-    /// Parse emails from Mail.app via AppleScript
-    func parseEmails(limit: Int = 500) -> [Email] {
+    /// Parse emails from Mail.app via AppleScript (async with timeout)
+    func parseEmails(limit: Int = 500) async -> [Email] {
         print("📧 Reading Mail.app via AppleScript...")
 
         // Check if Mail.app is running
@@ -23,7 +23,7 @@ class MailParser {
             return sampleEmails()
         }
 
-        // Simplified AppleScript - get unread messages from inbox
+        // Optimized AppleScript - get email metadata only (no full bodies to avoid hang)
         let script = """
         tell application "Mail"
             set allMessages to {}
@@ -37,7 +37,11 @@ class MailParser {
                     set subj to subject of msg
                     set sndr to sender of msg
                     set rcvd to (date received of msg) as string
-                    set msgBody to content of msg
+                    -- Get only first 200 chars of body to avoid hanging on large emails
+                    set msgBody to text 1 thru (count of (content of msg as string)) of (content of msg as string)
+                    if length of msgBody > 200 then
+                        set msgBody to text 1 thru 200 of msgBody
+                    end if
                     set msgData to subj & "|" & sndr & "|" & rcvd & "|" & msgBody
                     set end of allMessages to msgData
                 end try
@@ -49,40 +53,73 @@ class MailParser {
         end tell
         """
 
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = ["-e", script]
+        return await withCheckedContinuation { continuation in
+            Task.detached {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+                process.arguments = ["-e", script]
 
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
+                let pipe = Pipe()
+                process.standardOutput = pipe
+                process.standardError = pipe
 
-        do {
-            try process.run()
-            process.waitUntilExit()
+                // Timeout after 30 seconds
+                let timeoutSeconds: TimeInterval = 30
+                var timedOut = false
+                var processCompleted = false
 
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            guard let output = String(data: data, encoding: .utf8), !output.isEmpty else {
-                print("❌ AppleScript returned no data")
-                return sampleEmails()
+                // Set up termination handler
+                process.terminationHandler = { _ in
+                    processCompleted = true
+                }
+
+                do {
+                    try process.run()
+
+                    // Start timeout timer
+                    Task.detached {
+                        try? await Task.sleep(nanoseconds: UInt64(timeoutSeconds * 1_000_000_000))
+                        if !processCompleted {
+                            timedOut = true
+                            print("⏱️ AppleScript timed out after \(timeoutSeconds)s - terminating...")
+                            process.terminate()
+                        }
+                    }
+
+                    // Wait for process (with timeout protection)
+                    process.waitUntilExit()
+
+                    if timedOut {
+                        print("❌ AppleScript timed out. Using sample data.")
+                        continuation.resume(returning: self.sampleEmails())
+                        return
+                    }
+
+                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    guard let output = String(data: data, encoding: .utf8), !output.isEmpty else {
+                        print("❌ AppleScript returned no data")
+                        continuation.resume(returning: self.sampleEmails())
+                        return
+                    }
+
+                    print("AppleScript output: \(output.prefix(200))...")
+
+                    // Parse AppleScript output
+                    let emails = self.parseAppleScriptOutput(output)
+
+                    if !emails.isEmpty {
+                        print("✅ Loaded \(emails.count) real emails from Mail.app")
+                        continuation.resume(returning: emails)
+                    } else {
+                        print("⚠️ No emails parsed. Using sample data.")
+                        continuation.resume(returning: self.sampleEmails())
+                    }
+
+                } catch {
+                    print("❌ AppleScript error: \(error)")
+                    continuation.resume(returning: self.sampleEmails())
+                }
             }
-
-            print("AppleScript output: \(output.prefix(200))...")
-
-            // Parse AppleScript output
-            let emails = parseAppleScriptOutput(output)
-
-            if !emails.isEmpty {
-                print("✅ Loaded \(emails.count) real emails from Mail.app")
-                return emails
-            } else {
-                print("⚠️ No emails parsed. Using sample data.")
-                return sampleEmails()
-            }
-
-        } catch {
-            print("❌ AppleScript error: \(error)")
-            return sampleEmails()
         }
     }
 
