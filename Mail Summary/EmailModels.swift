@@ -10,17 +10,19 @@ import Foundation
 
 struct Email: Identifiable, Codable {
     let id: Int
+    let messageId: String  // Mail.app message ID for fetching body on-demand
     let subject: String
     let sender: String
     let senderEmail: String
     let dateReceived: Date
-    let body: String
+    var body: String?  // Optional - loaded on-demand
     var isRead: Bool
     var category: EmailCategory?
     var priority: Int?  // 1-10
     var aiSummary: String?
     var actions: [EmailAction]
     var senderReputation: Double?  // 0-1
+    var isLoadingBody: Bool = false  // UI state for body loading
 
     enum EmailCategory: String, Codable, CaseIterable {
         case bills = "Bills"
@@ -64,13 +66,20 @@ struct Email: Identifiable, Codable {
 }
 
 struct EmailAction: Identifiable, Codable {
-    let id = UUID()
+    let id: UUID
     let type: ActionType
     let text: String
     let date: Date?
 
     enum ActionType: String, Codable {
         case deadline, meeting, task, reminder
+    }
+
+    init(id: UUID = UUID(), type: ActionType, text: String, date: Date?) {
+        self.id = id
+        self.type = type
+        self.text = text
+        self.date = date
     }
 }
 

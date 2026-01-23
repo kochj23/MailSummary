@@ -109,6 +109,35 @@ class MailEngine: ObservableObject {
         }
     }
 
+    /// Load email body on-demand
+    func loadEmailBody(emailID: Int) async {
+        guard let index = emails.firstIndex(where: { $0.id == emailID }) else { return }
+
+        // Already loaded or loading
+        if emails[index].body != nil || emails[index].isLoadingBody {
+            return
+        }
+
+        // Mark as loading
+        await MainActor.run {
+            self.emails[index].isLoadingBody = true
+        }
+
+        // Load body
+        let messageId = emails[index].messageId
+        if let body = await parser.loadEmailBody(messageId: messageId) {
+            await MainActor.run {
+                self.emails[index].body = body
+                self.emails[index].isLoadingBody = false
+            }
+        } else {
+            await MainActor.run {
+                self.emails[index].body = "[Unable to load email body]"
+                self.emails[index].isLoadingBody = false
+            }
+        }
+    }
+
     func markAsRead(emailID: Int) {
         if let index = emails.firstIndex(where: { $0.id == emailID }) {
             emails[index].isRead = true

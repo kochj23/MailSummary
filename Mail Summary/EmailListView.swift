@@ -113,11 +113,20 @@ struct EmailRowView: View {
                 .font(.body)
                 .foregroundColor(.white)
 
-            if !email.body.isEmpty && email.body != email.subject {
-                Text(email.body.prefix(100) + "...")
+            // Body preview (if loaded)
+            if let body = email.body, !body.isEmpty && body != email.subject {
+                Text(body.prefix(100) + "...")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.7))
                     .lineLimit(2)
+            } else if email.isLoadingBody {
+                HStack(spacing: 4) {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                    Text("Loading body...")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.5))
+                }
             }
 
             if let summary = email.aiSummary {
