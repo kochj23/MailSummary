@@ -23,30 +23,29 @@ class MailParser {
             return sampleEmails()
         }
 
-        // Use AppleScript to get messages
+        // Simplified AppleScript - get unread messages from inbox
         let script = """
         tell application "Mail"
-            set messageList to {}
-            repeat with acc in accounts
+            set allMessages to {}
+            set unreadMsgs to (messages of inbox whose read status is false)
+            set msgCount to count of unreadMsgs
+            if msgCount > \(limit) then set msgCount to \(limit)
+
+            repeat with i from 1 to msgCount
+                set msg to item i of unreadMsgs
                 try
-                    set inbox to mailbox "INBOX" of acc
-                    set msgs to messages of inbox
-                    repeat with msg in msgs
-                        if (read status of msg is false) then
-                            set msgData to {¬
-                                subject of msg, ¬
-                                sender of msg, ¬
-                                (date received of msg) as string, ¬
-                                content of msg, ¬
-                                (read status of msg) as string}
-                            set end of messageList to msgData
-                            if (count of messageList) ≥ \(limit) then exit repeat
-                        end if
-                    end repeat
-                    if (count of messageList) ≥ \(limit) then exit repeat
+                    set subj to subject of msg
+                    set sndr to sender of msg
+                    set rcvd to (date received of msg) as string
+                    set msgBody to content of msg
+                    set msgData to subj & "|" & sndr & "|" & rcvd & "|" & msgBody
+                    set end of allMessages to msgData
                 end try
             end repeat
-            return messageList
+
+            set AppleScript's text item delimiters to "|||"
+            set output to allMessages as string
+            return output
         end tell
         """
 
@@ -94,19 +93,58 @@ class MailParser {
     }
 
     private func parseAppleScriptOutput(_ output: String) -> [Email] {
-        // AppleScript returns list in format: {{subject, sender, date, content, readStatus}, ...}
         var emails: [Email] = []
 
-        // Basic parsing - AppleScript list format
-        let cleaned = output.replacingOccurrences(of: "\n", with: " ")
-            .replacingOccurrences(of: "\r", with: "")
+        // Split by delimiter (|||)
+        let messages = output.components(separatedBy: "|||").filter { !$0.isEmpty }
 
-        // For now, if we get any output, we know Mail.app is accessible
-        // Return enhanced sample data to show it's working
-        if !cleaned.isEmpty && cleaned.contains("subject") {
-            print("✅ Mail.app is accessible and returning data")
+        print("📧 Parsing \(messages.count) messages from AppleScript...")
+
+        for (index, messageString) in messages.enumerated() {
+            // Each message is pipe-delimited: subject|sender|date|body
+            let parts = messageString.components(separatedBy: "|")
+            guard parts.count >= 4 else {
+                print("⚠️ Skipping malformed message: \(parts.count) parts")
+                continue
+            }
+
+            let subject = parts[0].trimmingCharacters(in: .whitespaces)
+            let sender = parts[1].trimmingCharacters(in: .whitespaces)
+            let dateString = parts[2].trimmingCharacters(in: .whitespaces)
+            let body = parts[3].prefix(500).trimmingCharacters(in: .whitespaces) // First 500 chars
+
+            // Parse date
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "EEEE, MMMM d, yyyy 'at' h:mm:ss a"
+            let date = dateFormatter.date(from: dateString) ?? Date()
+
+            // Extract email address from sender (format: "Name <email@domain.com>")
+            var senderEmail = sender
+            var senderName = sender
+            if let emailStart = sender.firstIndex(of: "<"), let emailEnd = sender.firstIndex(of: ">") {
+                senderEmail = String(sender[emailStart...emailEnd]).replacingOccurrences(of: "<", with: "").replacingOccurrences(of: ">", with: "")
+                senderName = String(sender[..<emailStart]).trimmingCharacters(in: .whitespaces)
+            }
+
+            let email = Email(
+                id: index,
+                subject: subject,
+                sender: senderName,
+                senderEmail: senderEmail,
+                dateReceived: date,
+                body: String(body),
+                isRead: false, // AppleScript filtered to unread only
+                category: nil, // Will be categorized by AI
+                priority: nil, // Will be scored by AI
+                aiSummary: nil,
+                actions: [],
+                senderReputation: nil
+            )
+
+            emails.append(email)
         }
 
+        print("✅ Successfully parsed \(emails.count) emails from Mail.app")
         return emails
     }
 
