@@ -221,13 +221,15 @@ struct ContentView: View {
             GridItem(.flexible())
         ], spacing: 16) {
             ForEach(mailEngine.categories) { category in
-                Button(action: {
-                    selectedCategory = category.category
-                    showingEmailList = true
-                }) {
-                    CategoryCardView(summary: category)
-                }
-                .buttonStyle(.plain)
+                CategoryCardView(
+                    summary: category,
+                    emails: mailEngine.emails.filter { $0.category == category.category && !$0.isSnoozed },
+                    mailEngine: mailEngine,
+                    onViewAll: {
+                        selectedCategory = category.category
+                        showingEmailList = true
+                    }
+                )
             }
         }
     }
@@ -266,37 +268,98 @@ struct ContentView: View {
 
 struct CategoryCardView: View {
     let summary: CategorySummary
+    let emails: [Email]
+    @ObservedObject var mailEngine: MailEngine
+    let onViewAll: () -> Void
+
+    @State private var isExpanded = false
 
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: summary.category.icon)
-                .font(.system(size: 36))
-                .foregroundColor(categoryColor)
+        VStack(spacing: 0) {
+            // Main card (always visible)
+            Button(action: { withAnimation { isExpanded.toggle() } }) {
+                VStack(spacing: 12) {
+                    Image(systemName: summary.category.icon)
+                        .font(.system(size: 36))
+                        .foregroundColor(categoryColor)
 
-            Text("\(summary.count)")
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundColor(categoryColor)
+                    Text("\(summary.count)")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundColor(categoryColor)
 
-            Text(summary.category.rawValue)
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.7))
+                    Text(summary.category.rawValue)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
 
-            if summary.unreadCount > 0 {
-                Text("\(summary.unreadCount) unread")
-                    .font(.caption2)
-                    .foregroundColor(.cyan)
+                    if summary.unreadCount > 0 {
+                        Text("\(summary.unreadCount) unread")
+                            .font(.caption2)
+                            .foregroundColor(.cyan)
+                    }
+
+                    // Expand indicator
+                    if !emails.isEmpty {
+                        Image(systemName: isExpanded ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(categoryColor.opacity(0.7))
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(isExpanded ? 0.08 : 0.05))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(categoryColor.opacity(isExpanded ? 0.8 : 0.5), lineWidth: isExpanded ? 2 : 1)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+
+            // Expanded content (top 5 emails with actions)
+            if isExpanded && !emails.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(emails.prefix(5)) { email in
+                        CompactEmailRow(
+                            email: email,
+                            categoryColor: categoryColor,
+                            onMarkRead: {
+                                Task {
+                                    await mailEngine.performEmailAction(.toggleRead, on: email)
+                                }
+                            },
+                            onDelete: {
+                                Task {
+                                    await mailEngine.performEmailAction(.delete, on: email)
+                                }
+                            }
+                        )
+                    }
+
+                    // View all button
+                    if emails.count > 5 {
+                        Button(action: onViewAll) {
+                            Text("View All \(emails.count) Emails")
+                                .font(.caption)
+                                .foregroundColor(categoryColor)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(categoryColor.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.03))
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(categoryColor.opacity(0.5), lineWidth: 1)
-                )
-        )
     }
 
     private var categoryColor: Color {
@@ -311,6 +374,76 @@ struct CategoryCardView: View {
         case .spam: return .gray
         case .other: return .yellow
         }
+    }
+}
+
+/// Compact email row for category cards
+struct CompactEmailRow: View {
+    let email: Email
+    let categoryColor: Color
+    let onMarkRead: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            // Priority indicator
+            if let priority = email.priority, priority >= 8 {
+                Circle()
+                    .fill(priority >= 9 ? Color.red : Color.orange)
+                    .frame(width: 6, height: 6)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(email.subject)
+                    .font(.caption)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+
+                HStack(spacing: 4) {
+                    Text(email.sender)
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+
+                    Text("•")
+                        .foregroundColor(.gray.opacity(0.5))
+
+                    Text(email.dateReceived, style: .relative)
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                }
+            }
+
+            Spacer()
+
+            // Action buttons
+            HStack(spacing: 4) {
+                Button(action: onMarkRead) {
+                    Image(systemName: email.isRead ? "envelope.badge" : "envelope.open")
+                        .font(.caption)
+                        .foregroundColor(categoryColor)
+                }
+                .buttonStyle(.plain)
+                .help(email.isRead ? "Mark Unread" : "Mark Read")
+
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.plain)
+                .help("Delete")
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(email.isRead ? Color.white.opacity(0.02) : Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(categoryColor.opacity(0.3), lineWidth: 1)
+                )
+        )
     }
 }
 
