@@ -12,6 +12,7 @@ struct ContentView: View {
     @EnvironmentObject var mailEngine: MailEngine
     @State private var selectedCategory: Email.EmailCategory?
     @State private var showingEmailList = false
+    @State private var showingSearch = false
 
     var body: some View {
         ZStack {
@@ -23,6 +24,19 @@ struct ContentView: View {
                 // Header
                 headerView
 
+                // NEW: Action result toast
+                if let (message, isSuccess) = mailEngine.lastActionResult {
+                    ActionToast(message: message, isSuccess: isSuccess)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .zIndex(100)
+                }
+
+                // NEW: Active reminders banner
+                if !mailEngine.activeReminders.isEmpty {
+                    RemindersBanner(reminders: mailEngine.activeReminders)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
                 // AI Status Card (when processing)
                 if mailEngine.isCategorizingWithAI {
                     aiStatusCard
@@ -31,6 +45,12 @@ struct ContentView: View {
                 // AI Summary Card
                 if !mailEngine.aiSummary.isEmpty {
                     aiSummaryCard
+                }
+
+                // NEW: Snoozed emails section (if any)
+                if !mailEngine.snoozedEmails.isEmpty {
+                    SnoozedSection(snoozedEmails: snoozeManager.snoozedEmails, mailEngine: mailEngine)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
                 // Category Cards
@@ -42,16 +62,54 @@ struct ContentView: View {
                 Spacer()
             }
             .padding()
-        }
-        .sheet(isPresented: $showingEmailList) {
-            if let category = selectedCategory {
+            .blur(radius: showingEmailList || showingSearch ? 5 : 0)
+
+            // Custom modal overlay for email list
+            if showingEmailList, let category = selectedCategory {
+                Color.black.opacity(0.5)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        showingEmailList = false
+                    }
+
+                let filtered = mailEngine.emails.filter { $0.category == category && !$0.isSnoozed }
+                let _ = print("🔍 Opening modal for \(category.rawValue): \(filtered.count) emails")
                 EmailListView(
                     category: category,
-                    emails: mailEngine.emails.filter { $0.category == category },
+                    emails: filtered,
                     mailEngine: mailEngine
                 )
+                .transition(.scale.combined(with: .opacity))
+            }
+
+            // NEW: Search overlay
+            if showingSearch {
+                Color.black.opacity(0.5)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        showingSearch = false
+                    }
+
+                SearchView(
+                    searchManager: mailEngine.searchManager,
+                    mailEngine: mailEngine,
+                    isPresented: $showingSearch
+                )
+                .transition(.scale.combined(with: .opacity))
             }
         }
+        .animation(.spring(response: 0.3), value: showingEmailList)
+        .animation(.spring(response: 0.3), value: showingSearch)
+        .animation(.spring(response: 0.3), value: mailEngine.lastActionResult != nil)
+        .animation(.spring(response: 0.3), value: mailEngine.activeReminders.count)
+        .onAppear {
+            // Cleanup on app launch
+            SnoozeReminderManager.shared.cleanupExpired()
+        }
+    }
+
+    private var snoozeManager: SnoozeReminderManager {
+        SnoozeReminderManager.shared
     }
 
     private var headerView: some View {
@@ -61,6 +119,16 @@ struct ContentView: View {
                 .foregroundColor(.cyan)
 
             Spacer()
+
+            // NEW: Search button
+            Button(action: { showingSearch = true }) {
+                Image(systemName: "magnifyingglass")
+                    .font(.title2)
+                    .foregroundColor(.cyan)
+            }
+            .buttonStyle(.plain)
+            .keyboardShortcut("f", modifiers: .command)
+            .help("Search emails (⌘F)")
 
             // AI Backend Indicator
             HStack(spacing: 8) {

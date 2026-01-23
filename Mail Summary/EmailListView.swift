@@ -14,8 +14,13 @@ struct EmailListView: View {
     @ObservedObject var mailEngine: MailEngine
     @Environment(\.dismiss) var dismiss
 
+    @State private var selectedEmail: Email?
+
     var body: some View {
         VStack(spacing: 0) {
+            // Debug: Print when view loads
+            let _ = print("📋 EmailListView loaded: \(category.rawValue), \(emails.count) emails")
+
             // Header
             HStack {
                 Image(systemName: category.icon)
@@ -35,13 +40,16 @@ struct EmailListView: View {
                 Button(action: { dismiss() }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.red)
+                        .font(.title2)
                 }
                 .buttonStyle(.plain)
             }
             .padding()
-            .background(Color.black.opacity(0.9))
+            .background(Color.black)
 
-            Divider().background(categoryColor)
+            Divider()
+                .background(categoryColor)
+                .frame(height: 2)
 
             // Email list
             if emails.isEmpty {
@@ -54,21 +62,33 @@ struct EmailListView: View {
                         .font(.headline)
                         .foregroundColor(.white.opacity(0.7))
                 }
-                .frame(maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.black)
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 12) {
                         ForEach(emails) { email in
-                            EmailRowView(email: email)
+                            EmailRowView(email: email, mailEngine: mailEngine)
+                                .onTapGesture {
+                                    selectedEmail = email
+                                }
                         }
                     }
                     .padding()
                 }
+                .background(Color.black)
             }
         }
         .frame(width: 800, height: 600)
         .background(Color.black)
-        .border(categoryColor, width: 2)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(categoryColor, lineWidth: 3)
+        )
+        .sheet(item: $selectedEmail) { email in
+            EmailDetailView(email: email, mailEngine: mailEngine)
+        }
     }
 
     private var categoryColor: Color {
@@ -88,6 +108,7 @@ struct EmailListView: View {
 
 struct EmailRowView: View {
     let email: Email
+    @ObservedObject var mailEngine: MailEngine
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -144,6 +165,12 @@ struct EmailRowView: View {
                         .stroke(Color.cyan.opacity(0.3), lineWidth: 1)
                 )
         )
+        .onTapGesture {
+            // Load body on-demand when user taps email
+            Task {
+                await mailEngine.loadEmailBody(emailID: email.id)
+            }
+        }
     }
 
     private func priorityColor(_ priority: Int) -> Color {

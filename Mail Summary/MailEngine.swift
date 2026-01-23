@@ -19,12 +19,33 @@ class MailEngine: ObservableObject {
     @Published var isCategorizingWithAI: Bool = false
     @Published var aiProgress: String = ""
 
+    // NEW: Search & Filter
+    @Published var searchManager = SearchFilterManager()
+    @Published var isSearching = false
+
+    // NEW: Snooze & Reminders
+    @Published var snoozedEmails: [Email] = []
+    @Published var activeReminders: [EmailReminder] = []
+
+    // NEW: Action feedback
+    @Published var lastActionResult: (String, Bool)? = nil  // (message, isSuccess)
+
     private let parser = MailParser()
     private let categorizer = AICategorizationEngine()
+    private let actionManager = EmailActionManager.shared
+    private let snoozeManager = SnoozeReminderManager.shared
     private var cancellables = Set<AnyCancellable>()
+    private var snoozeCheckTimer: Timer?
 
     init() {
         loadEmails()
+
+        // Check for expired snoozes every minute
+        snoozeCheckTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.checkExpiredSnoozes()
+            }
+        }
     }
 
     func loadEmails() {
@@ -136,6 +157,135 @@ class MailEngine: ObservableObject {
                 self.emails[index].isLoadingBody = false
             }
         }
+    }
+
+    // MARK: - Email Actions
+
+    /// Perform an action on an email (delete, archive, reply, etc.)
+    func performEmailAction(_ action: EmailActionType, on email: Email) async {
+        let result = await actionManager.performAction(action, on: email)
+
+        await MainActor.run {
+            switch result {
+            case .success:
+                lastActionResult = ("✅ \(action.displayName) completed", true)
+
+                // Update UI state based on action
+                switch action {
+                case .delete, .archive:
+                    deleteEmail(emailID: email.id)
+
+                case .markRead:
+                    if let index = emails.firstIndex(where: { $0.id == email.id }) {
+                        emails[index].isRead = true
+                    }
+                    updateStats()
+
+                case .markUnread:
+                    if let index = emails.firstIndex(where: { $0.id == email.id }) {
+                        emails[index].isRead = false
+                    }
+                    updateStats()
+
+                case .toggleRead:
+                    if let index = emails.firstIndex(where: { $0.id == email.id }) {
+                        emails[index].isRead.toggle()
+                    }
+                    updateStats()
+
+                case .reply, .forward:
+                    // Mail.app draft window opened, no UI update needed
+                    break
+
+                case .move:
+                    // Email moved, remove from list
+                    deleteEmail(emailID: email.id)
+                }
+
+            case .failure(let error):
+                lastActionResult = ("❌ \(error)", false)
+
+            case .notSupported:
+                lastActionResult = ("⚠️ Action not supported", false)
+            }
+
+            // Clear toast after 3 seconds
+            Task {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                await MainActor.run {
+                    self.lastActionResult = nil
+                }
+            }
+        }
+    }
+
+    // MARK: - Snooze & Reminders
+
+    /// Mark email as snoozed
+    func markEmailAsSnoozed(emailId: Int, until: Date) {
+        if let index = emails.firstIndex(where: { $0.id == emailId }) {
+            emails[index].isSnoozed = true
+            emails[index].snoozeUntil = until
+        }
+        updateSnoozedList()
+    }
+
+    /// Unsnooze an email
+    func unsnoozeEmail(emailId: Int) {
+        if let index = emails.firstIndex(where: { $0.id == emailId }) {
+            emails[index].isSnoozed = false
+            emails[index].snoozeUntil = nil
+        }
+        updateSnoozedList()
+    }
+
+    /// Mark email as having a reminder
+    func markEmailAsHasReminder(emailId: Int, remindAt: Date) {
+        if let index = emails.firstIndex(where: { $0.id == emailId }) {
+            emails[index].hasReminder = true
+            emails[index].reminderDate = remindAt
+        }
+        updateActiveReminders()
+    }
+
+    /// Check for expired snoozes
+    private func checkExpiredSnoozes() {
+        let expired = snoozeManager.getExpiredSnoozed()
+
+        for snoozed in expired {
+            // Find email and unsnooze
+            if let index = emails.firstIndex(where: { $0.messageId == snoozed.messageId }) {
+                emails[index].isSnoozed = false
+                emails[index].snoozeUntil = nil
+            }
+
+            snoozeManager.unsnooze(emailId: snoozed.emailId)
+        }
+
+        if !expired.isEmpty {
+            updateSnoozedList()
+            lastActionResult = ("📧 \(expired.count) snoozed email\(expired.count == 1 ? "" : "s") ready", true)
+
+            // Clear message after 3 seconds
+            Task {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                await MainActor.run {
+                    self.lastActionResult = nil
+                }
+            }
+        }
+
+        updateActiveReminders()
+    }
+
+    /// Update snoozed emails list
+    private func updateSnoozedList() {
+        snoozedEmails = emails.filter { $0.isSnoozed }
+    }
+
+    /// Update active reminders list
+    private func updateActiveReminders() {
+        activeReminders = snoozeManager.getActiveReminders()
     }
 
     func markAsRead(emailID: Int) {

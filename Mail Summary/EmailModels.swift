@@ -24,6 +24,15 @@ struct Email: Identifiable, Codable {
     var senderReputation: Double?  // 0-1
     var isLoadingBody: Bool = false  // UI state for body loading
 
+    // NEW: Snooze/Reminder state
+    var isSnoozed: Bool = false
+    var snoozeUntil: Date? = nil
+    var hasReminder: Bool = false
+    var reminderDate: Date? = nil
+
+    // NEW: Search highlighting
+    var matchedFields: Set<String> = []  // "subject", "sender", "body"
+
     enum EmailCategory: String, Codable, CaseIterable {
         case bills = "Bills"
         case orders = "Orders"
