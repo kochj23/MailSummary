@@ -29,7 +29,15 @@ class MailEngine: ObservableObject {
         isScanning = true
 
         Task {
-            let parsed = parser.parseEmails()
+            var parsed = parser.parseEmails(limit: 500)  // Increase limit to 500
+
+            // Categorize emails with AI
+            for index in parsed.indices {
+                let category = await categorizer.categorizeEmail(parsed[index])
+                let priority = await categorizer.scoreEmailPriority(parsed[index])
+                parsed[index].category = category
+                parsed[index].priority = priority
+            }
 
             await MainActor.run {
                 self.emails = parsed

@@ -16,6 +16,7 @@
 		7360AFB878DD6D79B1DFCC2E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2E14D9919956B6648E58286 /* ContentView.swift */; };
 		8BBC5307A691BF2F6DFAC8A8 /* AICategorizationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1CA3F10840D8D5ED5C9365 /* AICategorizationEngine.swift */; };
 		C3A1E66474BFB6B82B8B163D /* MailParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B5F01F99DDE901D775B975C /* MailParser.swift */; };
+		C3C284A0F456B324B1E1991E /* EmailListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24DC016858C657594309DC45 /* EmailListView.swift */; };
 		FB9A57C35E69494E1B3FA3E5 /* AIBackendManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32195E8DCD6CDA683905DCBC /* AIBackendManager.swift */; };
 /* End PBXBuildFile section */
 
@@ -23,6 +24,7 @@
 		0CAD464C0D199CB391A740A9 /* MailSummaryApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MailSummaryApp.swift; sourceTree = "<group>"; };
 		1B5F01F99DDE901D775B975C /* MailParser.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MailParser.swift; sourceTree = "<group>"; };
 		1BB556637BF01E058023B7BA /* MailEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MailEngine.swift; sourceTree = "<group>"; };
+		24DC016858C657594309DC45 /* EmailListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmailListView.swift; sourceTree = "<group>"; };
 		32195E8DCD6CDA683905DCBC /* AIBackendManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AIBackendManager.swift; sourceTree = "<group>"; };
 		408914065D697DB7491FDF97 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4E8124253927FE97FF9CBEB6 /* MailParser.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MailParser.swift; sourceTree = "<group>"; };
@@ -102,6 +104,7 @@
 				408914065D697DB7491FDF97 /* Info.plist */,
 				A6CEB1AC239D4C06C173B2EF /* MenuBarView.swift */,
 				AE9B99AB2EFBECCCDBF73326 /* Assets.xcassets */,
+				24DC016858C657594309DC45 /* EmailListView.swift */,
 			);
 			name = "Mail Summary";
 			path = "Mail Summary";
@@ -179,6 +182,7 @@
 				8BBC5307A691BF2F6DFAC8A8 /* AICategorizationEngine.swift in Sources */,
 				FB9A57C35E69494E1B3FA3E5 /* AIBackendManager.swift in Sources */,
 				6B8F551BC9B5866D6A963F8A /* MenuBarView.swift in Sources */,
+				C3C284A0F456B324B1E1991E /* EmailListView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -10,6 +10,8 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var mailEngine: MailEngine
+    @State private var selectedCategory: Email.EmailCategory?
+    @State private var showingEmailList = false
 
     var body: some View {
         ZStack {
@@ -35,6 +37,15 @@ struct ContentView: View {
                 Spacer()
             }
             .padding()
+        }
+        .sheet(isPresented: $showingEmailList) {
+            if let category = selectedCategory {
+                EmailListView(
+                    category: category,
+                    emails: mailEngine.emails.filter { $0.category == category },
+                    mailEngine: mailEngine
+                )
+            }
         }
     }
 
@@ -94,8 +105,8 @@ struct ContentView: View {
         ], spacing: 16) {
             ForEach(mailEngine.categories) { category in
                 Button(action: {
-                    // Show email summary for this category
-                    print("Clicked: \(category.category.rawValue) - \(category.count) emails")
+                    selectedCategory = category.category
+                    showingEmailList = true
                 }) {
                     CategoryCardView(summary: category)
                 }

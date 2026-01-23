@@ -36,18 +36,98 @@ class MailParser {
 
     /// Parse emails from Mail.app database
     func parseEmails(limit: Int = 100) -> [Email] {
-        guard let dbPath = MailParser.findEnvelopeDatabase() else {
-            print("Mail database not found")
-            return []
+        // First, try to read real Mail.app database
+        if let realEmails = parseRealMailDatabase(limit: limit), !realEmails.isEmpty {
+            print("✅ Loaded \(realEmails.count) real emails from Mail.app")
+            return realEmails
         }
 
-        var emails: [Email] = []
-
-        // Open SQLite database
-        // TODO: Implement SQLite parsing
-        // For now, return sample data for UI development
-
+        // Fallback to sample data if can't access Mail.app
+        print("⚠️ Using sample data - grant Full Disk Access to read real emails")
         return sampleEmails()
+    }
+
+    /// Parse real Mail.app database (new implementation)
+    private func parseRealMailDatabase(limit: Int) -> [Email]? {
+        guard let dbPath = MailParser.findEnvelopeDatabase() else {
+            print("Envelope Index not found")
+            return nil
+        }
+
+        print("📧 Reading Mail.app database: \(dbPath.path)")
+
+        // Try to read with shell command (simpler than SQLite.swift dependency)
+        let query = """
+        SELECT
+            m.ROWID,
+            m.subject,
+            m.date_received,
+            a.address,
+            a.comment
+        FROM messages m
+        LEFT JOIN addresses a ON m.sender = a.ROWID
+        WHERE m.date_received > \(Int(Date().addingTimeInterval(-30*24*3600).timeIntervalSince1970))
+        ORDER BY m.date_received DESC
+        LIMIT \(limit);
+        """
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
+        process.arguments = [dbPath.path, query]
+
+        let pipe = Pipe()
+        process.standardOutput = pipe
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            guard let output = String(data: data, encoding: .utf8), !output.isEmpty else {
+                return nil
+            }
+
+            // Parse SQLite output
+            var emails: [Email] = []
+            let lines = output.components(separatedBy: .newlines).filter { !$0.isEmpty }
+
+            for (index, line) in lines.enumerated() {
+                let parts = line.components(separatedBy: "|")
+                guard parts.count >= 5 else { continue }
+
+                let id = Int(parts[0]) ?? index
+                let subject = parts[1]
+                let timestampStr = parts[2]
+                let senderEmail = parts[3]
+                let senderName = parts[4].isEmpty ? parts[3] : parts[4]
+
+                let timestamp = TimeInterval(timestampStr) ?? Date().timeIntervalSince1970
+                let date = Date(timeIntervalSince1970: timestamp)
+
+                let email = Email(
+                    id: id,
+                    subject: subject,
+                    sender: senderName,
+                    senderEmail: senderEmail,
+                    dateReceived: date,
+                    body: subject, // Preview for now
+                    isRead: false, // Assume unread for now
+                    category: nil,
+                    priority: nil,
+                    aiSummary: nil,
+                    actions: [],
+                    senderReputation: nil
+                )
+
+                emails.append(email)
+            }
+
+            return emails.isEmpty ? nil : emails
+
+        } catch {
+            print("Error reading Mail database: \(error)")
+            return nil
+        }
     }
 
     /// Sample emails for development
