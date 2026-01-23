@@ -16,6 +16,8 @@ class MailEngine: ObservableObject {
     @Published var stats: MailboxStats = MailboxStats(totalEmails: 0, unreadEmails: 0, todayEmails: 0, highPriorityEmails: 0, actionsCount: 0)
     @Published var aiSummary: String = ""
     @Published var isScanning: Bool = false
+    @Published var isCategorizingWithAI: Bool = false
+    @Published var aiProgress: String = ""
 
     private let parser = MailParser()
     private let categorizer = AICategorizationEngine()
@@ -31,12 +33,24 @@ class MailEngine: ObservableObject {
         Task {
             var parsed = parser.parseEmails(limit: 500)  // Increase limit to 500
 
+            await MainActor.run {
+                self.isCategorizingWithAI = true
+                self.aiProgress = "Categorizing \(parsed.count) emails with AI..."
+            }
+
             // Categorize emails with AI
-            for index in parsed.indices {
+            for (index, _) in parsed.enumerated() {
                 let category = await categorizer.categorizeEmail(parsed[index])
                 let priority = await categorizer.scoreEmailPriority(parsed[index])
                 parsed[index].category = category
                 parsed[index].priority = priority
+
+                // Update progress
+                if index % 10 == 0 {
+                    await MainActor.run {
+                        self.aiProgress = "Categorized \(index+1)/\(parsed.count) emails..."
+                    }
+                }
             }
 
             await MainActor.run {
@@ -44,6 +58,8 @@ class MailEngine: ObservableObject {
                 self.updateCategories()
                 self.updateStats()
                 self.isScanning = false
+                self.isCategorizingWithAI = false
+                self.aiProgress = ""
             }
 
             // AI summary

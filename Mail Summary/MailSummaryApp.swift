@@ -25,6 +25,10 @@ struct MailSummaryApp: App {
             MenuBarView()
                 .environmentObject(mailEngine)
         }
+
+        Settings {
+            AIBackendSettingsView()
+        }
         #endif
     }
 }

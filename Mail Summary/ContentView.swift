@@ -23,6 +23,11 @@ struct ContentView: View {
                 // Header
                 headerView
 
+                // AI Status Card (when processing)
+                if mailEngine.isCategorizingWithAI {
+                    aiStatusCard
+                }
+
                 // AI Summary Card
                 if !mailEngine.aiSummary.isEmpty {
                     aiSummaryCard
@@ -57,6 +62,22 @@ struct ContentView: View {
 
             Spacer()
 
+            // AI Backend Indicator
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(AIBackendManager.shared.activeBackend != nil ? Color.green : Color.red)
+                    .frame(width: 10, height: 10)
+                    .shadow(color: AIBackendManager.shared.activeBackend != nil ? Color.green : Color.red, radius: 3)
+
+                Text(AIBackendManager.shared.activeBackend?.rawValue ?? "No AI")
+                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    .foregroundColor(AIBackendManager.shared.activeBackend != nil ? .green : .red)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color.white.opacity(0.05))
+            .cornerRadius(6)
+
             if mailEngine.isScanning {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle(tint: .cyan))
@@ -67,6 +88,34 @@ struct ContentView: View {
             }
             .buttonStyle(.borderedProminent)
         }
+    }
+
+    private var aiStatusCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .purple))
+
+                Text("🤖 AI PROCESSING")
+                    .font(.headline)
+                    .foregroundColor(.purple)
+
+                Spacer()
+            }
+
+            Text(mailEngine.aiProgress)
+                .font(.body)
+                .foregroundColor(.white.opacity(0.9))
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.purple.opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.purple, lineWidth: 2)
+                )
+        )
     }
 
     private var aiSummaryCard: some View {
