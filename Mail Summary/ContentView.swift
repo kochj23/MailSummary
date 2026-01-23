@@ -93,7 +93,13 @@ struct ContentView: View {
             GridItem(.flexible())
         ], spacing: 16) {
             ForEach(mailEngine.categories) { category in
-                CategoryCardView(summary: category)
+                Button(action: {
+                    // Show email summary for this category
+                    print("Clicked: \(category.category.rawValue) - \(category.count) emails")
+                }) {
+                    CategoryCardView(summary: category)
+                }
+                .buttonStyle(.plain)
             }
         }
     }

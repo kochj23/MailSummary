@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		067B4827ADB4C94D968DDF62 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C49AC7A14483A507DE8678A2 /* Cocoa.framework */; };
+		17291E555297DF21CDC29BF4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AE9B99AB2EFBECCCDBF73326 /* Assets.xcassets */; };
 		2D5F37D3C748573E06221BA7 /* MailSummaryApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAD464C0D199CB391A740A9 /* MailSummaryApp.swift */; };
 		32B6C005C41990E117A7AB3B /* EmailModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0B0889ABD177C26E3AD7A61 /* EmailModels.swift */; };
 		6B8F551BC9B5866D6A963F8A /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6CEB1AC239D4C06C173B2EF /* MenuBarView.swift */; };
@@ -33,6 +34,7 @@
 		A6CEB1AC239D4C06C173B2EF /* MenuBarView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		A8E4458970D315C689B6CD9A /* MailSummaryApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MailSummaryApp.swift; sourceTree = "<group>"; };
 		ACFAC630E93E1296800C66A5 /* MailEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MailEngine.swift; sourceTree = "<group>"; };
+		AE9B99AB2EFBECCCDBF73326 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C49AC7A14483A507DE8678A2 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
 		E0B0889ABD177C26E3AD7A61 /* EmailModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmailModels.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -99,6 +101,7 @@
 				32195E8DCD6CDA683905DCBC /* AIBackendManager.swift */,
 				408914065D697DB7491FDF97 /* Info.plist */,
 				A6CEB1AC239D4C06C173B2EF /* MenuBarView.swift */,
+				AE9B99AB2EFBECCCDBF73326 /* Assets.xcassets */,
 			);
 			name = "Mail Summary";
 			path = "Mail Summary";
@@ -157,6 +160,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				17291E555297DF21CDC29BF4 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
