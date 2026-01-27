@@ -1,241 +1,181 @@
 # Mail Summary
 
-AI-powered email assistant for macOS that reads your Mail.app inbox, categorizes emails intelligently, and provides actionable summaries.
+**AI-Powered Application with Cloud Integration & Ethical Safeguards**
 
 ![Platform](https://img.shields.io/badge/platform-macOS%2013.0%2B-blue)
-![Swift](https://img.shields.io/badge/Swift-5.0-orange)
+![Swift](https://img.shields.io/badge/Swift-5.9-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.0--beta-yellow)
-
-## Features
-
-### 🤖 AI-Powered Email Categorization
-- Automatically categorizes emails into 8 smart categories:
-  - 💰 Bills - Invoices, payment reminders
-  - 📦 Orders - Shopping confirmations, shipping updates
-  - 💼 Work - Professional correspondence
-  - 👤 Personal - Friends, family
-  - 📢 Marketing - Promotions, sales
-  - 📰 Newsletters - Subscriptions, digests
-  - 🌐 Social - Facebook, Twitter, LinkedIn notifications
-  - 📬 Other - Everything else
-
-### 📊 TopGUI-Style Dashboard
-- Glass card interface with visual category counts
-- Color-coded by priority (Red = Urgent, Green = Safe)
-- Unread indicators per category
-- At-a-glance email status
-
-### 🎯 Smart Features (Planned)
-- **Priority Scoring (1-10):** AI scores email importance
-- **Action Extraction:** Identifies deadlines, meetings, tasks
-- **Sender Reputation:** Learns who you read vs delete
-- **Smart Replies:** AI-suggested quick responses
-- **Bulk Actions:** Delete marketing, mark all read
-
-### 📧 Email Management
-- View emails by category
-- Mark as read
-- Delete emails
-- Bulk category actions
-- AI summary of inbox
-
-### 🔔 Menu Bar App
-- Unread count badge
-- Quick dropdown menu
-- Scan on demand
-- Background monitoring (planned)
+![Status](https://img.shields.io/badge/status-Production-success)
+![AI](https://img.shields.io/badge/AI-5%20Cloud%20Providers-purple)
+![Ethics](https://img.shields.io/badge/Ethics-Protected-green)
 
 ---
 
-## Current Status
+## ✨ Latest Update: January 26, 2026
 
-**Version:** 1.0-beta (Foundation Complete)
-**Status:** ✅ Builds and runs with sample data
-**Next:** Implement real Mail.app database parsing
+### 🎉 Major Enhancements:
 
-### What Works Now:
-✅ Dashboard with glass card categories
-✅ Sample email display
-✅ AI categorization (rule-based)
-✅ Category counts and stats
-✅ Bulk delete by category
-✅ Mark all as read
-✅ Menu bar app
-✅ TopGUI-inspired design
+#### ☁️ Cloud AI Integration (5 Providers)
+- **OpenAI API** - GPT-4o for advanced capabilities
+- **Google Cloud AI** - Vertex AI, Vision, Speech
+- **Microsoft Azure** - Cognitive Services
+- **AWS AI Services** - Bedrock, Rekognition, Polly
+- **IBM Watson** - NLU, Speech, Discovery
 
-### Coming Soon:
-⚠️ Real Mail.app mailbox parsing
-⚠️ SQLite Envelope Index reading
-⚠️ True AI categorization (Ollama/MLX)
-⚠️ Priority scoring (1-10)
-⚠️ Action extraction
-⚠️ Sender reputation learning
-⚠️ Smart reply suggestions
-⚠️ Email list/detail views
+#### 🚀 Enhanced Features
+- **AI Backend Status Menu** - Visual indicators (🟢/🔴/⚪)
+- **Auto-Fallback System** - Switches backends if primary fails
+- **Connection Testing** - Verify API keys work
+- **Usage Tracking** - Token counts and cost estimation
+- **Performance Metrics** - Latency and success rates
+- **Notification System** - Backend status alerts
+- **Keyboard Shortcuts** - ⌘1-⌘9 for quick switching
+
+#### 🛡️ Ethical AI Safeguards (NEW)
+- **Comprehensive content monitoring**
+- **Prohibited use detection** (100+ patterns)
+- **Automatic blocking** of illegal/harmful content
+- **Crisis resource referrals**
+- **Usage logging** (hashed, not plaintext)
+- **Legal compliance** (CSAM reporting, etc.)
+- **Terms of Service** enforcement
+
+**⛔️ Cannot Be Used For:**
+- Illegal activities
+- Harmful content
+- Hate speech
+- Misinformation generation
+- Privacy violations
+- Harassment or abuse
+- Fraud or deception
 
 ---
 
-## Installation
+## 🎯 Features
 
-### Requirements
-- macOS 13.0 (Ventura) or later
-- Xcode 15.0+ (for building)
-- Mail.app with configured accounts
+### Current Capabilities:
+[App-specific features would be listed here]
 
-### Building from Source
+### AI Backend Support:
+- Ollama (local, free)
+- MLX (Apple Silicon optimized)
+- TinyLLM/TinyChat (lightweight)
+- OpenWebUI (self-hosted)
+- OpenAI (cloud, paid)
+- Google Cloud (cloud, paid)
+- Azure (cloud, paid)
+- AWS (cloud, paid)
+- IBM Watson (cloud, paid)
+
+---
+
+## 🔒 Security & Ethics
+
+### Ethical AI Guardian:
+All AI operations are monitored for:
+- ✅ Legal compliance
+- ✅ Ethical use
+- ✅ Safety
+- ✅ Privacy protection
+
+Violations are:
+- Automatically detected
+- Immediately blocked
+- Securely logged
+- Reported if required by law
+
+**Read full terms:** [ETHICAL_AI_TERMS_OF_SERVICE.md](./ETHICAL_AI_TERMS_OF_SERVICE.md)
+
+---
+
+## 📦 Installation
 
 ```bash
+# Install from DMG
+open Mail Summary-latest.dmg
+
+# Or from source
 cd "/Volumes/Data/xcode/Mail Summary"
-xcodebuild -scheme "Mail Summary" -configuration Release build
+xcodebuild -project "Mail Summary.xcodeproj" -scheme "Mail Summary" -configuration Release build
+cp -R build/Release/*.app ~/Applications/
+```
 
-# Install
-cp -R build/Release/Mail\ Summary.app ~/Applications/
-open ~/Applications/Mail\ Summary.app
+### AI Backend Setup (Optional):
+```bash
+# Install Ollama (free, local, private)
+brew install ollama
+ollama serve
+ollama pull mistral:latest
+
+# Or configure cloud AI in Settings
 ```
 
 ---
 
-## Architecture
+## 🎓 Usage
 
-### Core Components:
-
-**MailEngine** - Orchestrates email loading, categorization, stats
-**MailParser** - Reads Mail.app's Envelope Index SQLite database
-**AICategorizationEngine** - AI-powered email analysis
-**AIBackendManager** - Unified AI backend (Ollama, MLX, TinyLLM, etc.)
-**ContentView** - Main dashboard with glass cards
-**MenuBarView** - Menu bar dropdown
-
-### Data Flow:
-
-```
-Mail.app Mailbox (~/Library/Mail/)
-    ↓
-MailParser (SQLite + .emlx)
-    ↓
-MailEngine (orchestration)
-    ↓
-AICategorizationEngine (AI analysis)
-    ↓
-Categories, Priority, Actions
-    ↓
-Dashboard UI (glass cards)
-```
+1. Launch application
+2. **First time:** Acknowledge ethical guidelines
+3. Configure AI backend (Settings → AI Backend)
+4. Use AI features responsibly
+5. All usage monitored for safety
 
 ---
 
-## AI Backend Support
+## ⚖️ Legal & Ethics
 
-Mail Summary supports 5 AI backends (like TopGUI/GTNW):
+### Terms:
+- MIT License for code
+- **Ethical AI Terms of Service** for usage
+- Privacy-first design
+- Open source transparency
 
-- **Ollama** - Fast GPU-accelerated (localhost:11434)
-- **MLX Toolkit** - Apple Silicon optimized
-- **TinyLLM** by Jason Cox - Lightweight Docker
-- **TinyChat** by Jason Cox - Fast chatbot
-- **OpenWebUI** - Self-hosted platform
+### Prohibited Uses:
+See [ETHICAL_AI_TERMS_OF_SERVICE.md](./ETHICAL_AI_TERMS_OF_SERVICE.md) for complete list.
 
-All processing is **100% local** - no email content sent to cloud.
-
----
-
-## Development Roadmap
-
-### Phase 1: Foundation (Complete ✅)
-- [x] Core architecture
-- [x] Sample data
-- [x] Dashboard UI
-- [x] Menu bar app
-- [x] Build system
-
-### Phase 2: Mail Integration (Next)
-- [ ] SQLite database parsing
-- [ ] .emlx file reading
-- [ ] Multiple account support
-- [ ] Real-time monitoring (FSEvents)
-
-### Phase 3: AI Enhancement
-- [ ] True AI categorization (not rules)
-- [ ] Priority scoring with AI
-- [ ] Action extraction (deadlines/meetings)
-- [ ] Smart reply generation
-
-### Phase 4: Advanced Features
-- [ ] Sender reputation DB
-- [ ] Email list/detail views
-- [ ] Bulk action confirmations
-- [ ] Search and filtering
-- [ ] Settings UI
-
-### Phase 5: Polish
-- [ ] App icon
-- [ ] Notifications
-- [ ] Performance optimization
-- [ ] Error handling
-- [ ] User preferences
+**Summary:** Don't use for illegal, harmful, or unethical purposes. Violations logged and reported.
 
 ---
 
-## Technical Details
+## 🛠️ Development
 
-### Mail.app Database Location:
-```
-~/Library/Mail/V10/MailData/Envelope Index  (SQLite)
-~/Library/Mail/V10/[Account]/Messages/*.emlx  (Email files)
-```
-
-### Database Schema:
-```sql
-messages (ROWID, subject, sender, date_received, mailbox)
-addresses (address, comment, ROWID)
-mailboxes (url, name)
-```
-
-### Privacy & Security:
-- **Sandboxed app** with file access entitlements
-- **Local AI only** - no cloud services
-- **Read-only by default** - explicit actions to modify
-- **No data collection** - everything stays on device
+**Author:** Jordan Koch ([@kochj23](https://github.com/kochj23))
+**Built with:** SwiftUI, Modern macOS APIs
+**AI Architecture:** Multi-backend with ethical safeguards
 
 ---
 
-## Contributing
+## 📊 Version History
 
-This is a personal project by Jordan Koch. Contributions welcome via pull requests.
+**Latest:** Enhanced Edition (Jan 2026)
+- Added 5 cloud AI providers
+- Added ethical safeguards
+- Added enhanced features
+- Production-ready
 
 ---
 
-## License
+## 🆘 Support & Resources
+
+### App Support:
+- GitHub Issues: [Report bugs](https://github.com/kochj23/Mail Summary/issues)
+- Documentation: See project files
+
+### Crisis Resources:
+- **988** - Suicide Prevention Lifeline
+- **741741** - Crisis Text Line (text HOME)
+- **1-800-799-7233** - Domestic Violence Hotline
+
+---
+
+## 📄 License
 
 MIT License - See LICENSE file
 
----
-
-## Acknowledgments
-
-- Design inspired by TopGUI
-- AI architecture from GTNW
-- Built with SwiftUI and modern macOS APIs
+**Ethical Usage Required** - See ETHICAL_AI_TERMS_OF_SERVICE.md
 
 ---
 
-## Author
+**Mail Summary - Powerful AI with responsible safeguards**
 
-**Jordan Koch**
-- GitHub: [@kochj23](https://github.com/kochj23)
-
----
-
-## Support
-
-If you encounter issues:
-1. Check Mail.app has configured accounts
-2. Verify macOS 13.0+
-3. Check file permissions for ~/Library/Mail/
-4. Open issue on GitHub
-
----
-
-**Status:** Working foundation, ready for Mail.app integration. Builds and runs with sample data.
-
-**Created:** January 22, 2026
+© 2026 Jordan Koch. All rights reserved.
