@@ -1,0 +1,23 @@
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/MailSummaryApp.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/ContentView.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/MailEngine.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/MailParser.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/EmailModels.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/AICategorizationEngine.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/AIBackendManager.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/MenuBarView.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/EmailListView.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/Models/SnoozeReminderModels.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/Managers/EmailActionManager.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/Managers/SearchFilterManager.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/Managers/SnoozeReminderManager.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/Views/EmailDetailView.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/Views/SearchView.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/Views/Components/ActionButtonRow.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/Views/Components/ActionToast.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/Views/Components/HTMLContentView.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/Views/Components/ReminderFormView.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/Views/Components/RemindersBanner.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/Views/Components/SnoozedSection.swift
+/Volumes/Data/xcode/Mail\ Summary/Mail\ Summary/Views/Components/SnoozePickerView.swift
+/Volumes/Data/xcode/Mail\ Summary/build/Build/Intermediates.noindex/Mail\ Summary.build/Release/Mail\ Summary.build/DerivedSources/GeneratedAssetSymbols.swift

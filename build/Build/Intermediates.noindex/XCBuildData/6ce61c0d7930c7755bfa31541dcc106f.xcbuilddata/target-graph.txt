@@ -1,0 +1,2 @@
+Target dependency graph (1 target)
+Target 'Mail Summary' in project 'Mail Summary' (no dependencies)

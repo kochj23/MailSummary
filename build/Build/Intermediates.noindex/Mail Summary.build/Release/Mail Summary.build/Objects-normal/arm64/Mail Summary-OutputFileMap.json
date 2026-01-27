@@ -1,0 +1,126 @@
+{
+  "" : {
+    "const-values" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail Summary-primary.swiftconstvalues",
+    "dependencies" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail Summary-primary.d",
+    "diagnostics" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail Summary-primary.dia",
+    "emit-module-dependencies" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail Summary-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail Summary-primary-emit-module.dia",
+    "pch" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail Summary-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail Summary-primary.swiftdeps"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/AIBackendManager.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/AIBackendManager.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/AIBackendManager.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/AIBackendManager.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/AICategorizationEngine.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/AICategorizationEngine.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/AICategorizationEngine.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/AICategorizationEngine.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/ContentView.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/ContentView.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/EmailListView.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/EmailListView.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/EmailListView.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/EmailListView.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/EmailModels.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/EmailModels.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/EmailModels.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/EmailModels.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/MailEngine.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/MailEngine.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/MailEngine.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/MailEngine.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/MailParser.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/MailParser.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/MailParser.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/MailParser.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/MailSummaryApp.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/MailSummaryApp.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/MailSummaryApp.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/MailSummaryApp.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/Managers/EmailActionManager.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/EmailActionManager.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/EmailActionManager.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/EmailActionManager.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/Managers/SearchFilterManager.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SearchFilterManager.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SearchFilterManager.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SearchFilterManager.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/Managers/SnoozeReminderManager.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SnoozeReminderManager.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SnoozeReminderManager.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SnoozeReminderManager.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/MenuBarView.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/MenuBarView.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/MenuBarView.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/MenuBarView.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/Models/SnoozeReminderModels.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SnoozeReminderModels.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SnoozeReminderModels.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SnoozeReminderModels.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/Views/Components/ActionButtonRow.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/ActionButtonRow.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/ActionButtonRow.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/ActionButtonRow.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/Views/Components/ActionToast.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/ActionToast.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/ActionToast.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/ActionToast.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/Views/Components/HTMLContentView.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/HTMLContentView.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/HTMLContentView.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/HTMLContentView.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/Views/Components/ReminderFormView.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/ReminderFormView.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/ReminderFormView.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/ReminderFormView.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/Views/Components/RemindersBanner.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/RemindersBanner.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/RemindersBanner.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/RemindersBanner.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/Views/Components/SnoozePickerView.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SnoozePickerView.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SnoozePickerView.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SnoozePickerView.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/Views/Components/SnoozedSection.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SnoozedSection.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SnoozedSection.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SnoozedSection.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/Views/EmailDetailView.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/EmailDetailView.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/EmailDetailView.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/EmailDetailView.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/Views/SearchView.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SearchView.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SearchView.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/SearchView.o"
+  },
+  "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "/Volumes/Data/xcode/Mail Summary/Mail Summary/MailSummaryApp.swift" : {
+    "abi-baseline-json" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail_Summary.abi.json",
+    "const-values" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail Summary-primary.swiftconstvalues",
+    "dependencies" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail Summary-primary.d",
+    "diagnostics" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail Summary-primary.dia",
+    "objc-header" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail_Summary-Swift.h",
+    "swiftdoc" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail_Summary.swiftdoc",
+    "swiftmodule" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail_Summary.swiftmodule",
+    "swiftsourceinfo" : "/Volumes/Data/xcode/Mail Summary/build/Build/Intermediates.noindex/Mail Summary.build/Release/Mail Summary.build/Objects-normal/arm64/Mail_Summary.swiftsourceinfo"
+  }
+}
