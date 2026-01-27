@@ -1,14 +1,47 @@
-# Mail Summary v2.1 - The AI That Manages Your Inbox
+# Mail Summary v2.2 - The AI That Manages Your Inbox
 
 **Autonomous Email Assistant with 90% Automation**
 
 ![Platform](https://img.shields.io/badge/platform-macOS%2013.0%2B-blue)
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.1.0-success)
+![Version](https://img.shields.io/badge/version-2.2.0-success)
 ![AI](https://img.shields.io/badge/AI-10%20Backends-purple)
 ![Automation](https://img.shields.io/badge/Automation-90%25-brightgreen)
 ![Ethics](https://img.shields.io/badge/Ethics-Protected-green)
+
+---
+
+## 🆕 What's New in v2.2.0 (January 2026)
+
+### ✅ Complete Rules Engine Integration
+**All 11 rule actions now fully functional:**
+
+- **Delete Email** - Integrated with EmailActionManager for actual deletion
+- **Archive Email** - Full archiving support with confirmation
+- **Mark as Read/Unread** - Syncs with Mail.app via AppleScript
+- **Move to Mailbox** - Relocate emails to specified folders
+- **Snooze Email** - Integrated with SnoozeReminderManager
+- **Add Tags** - Tag system with Email model extension
+- **Notify** - System notifications for rule triggers
+- **Error Handling** - Proper async/await with error logging
+
+### 💾 Enhanced Export/Import System
+**Full backup and restoration:**
+
+- **Settings Restore** - All UserDefaults preferences
+- **Rules Import** - Deserialize and validate rules from backup
+- **Templates Import** - Reply template restoration
+- **VIP Import** - Sender intelligence VIP list restoration
+- **JSON Format** - Structured backup files for portability
+
+### 📊 Sender Intelligence Improvements
+**Reply rate tracking now implemented:**
+
+- **Reply Rate Calculation** - Tracks sent vs received emails per sender
+- **VIP Auto-Detection** - Based on reply rate and open rate thresholds
+- **Statistics Tracking** - Per-sender metrics via UserDefaults
+- **Real-time Updates** - Dynamic VIP status changes
 
 ---
 
