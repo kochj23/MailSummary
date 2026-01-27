@@ -161,10 +161,18 @@ struct SearchFilters: Equatable {
     var unreadOnly: Bool = false
     var hasAttachments: Bool = false
 
+    // Advanced filters (Feature 2)
+    var senderDomain: String? = nil
+    var senderIsVIP: Bool = false
+    var hasActionItems: Bool = false
+    var wordCountRange: (min: Int, max: Int)? = nil
+    var presetName: String? = nil  // For saved filter presets
+
     /// Check if any filters are active
     var isActive: Bool {
         !query.isEmpty || !categories.isEmpty || minPriority != nil ||
-        maxPriority != nil || dateRange != nil || unreadOnly || hasAttachments
+        maxPriority != nil || dateRange != nil || unreadOnly || hasAttachments ||
+        senderDomain != nil || senderIsVIP || hasActionItems || wordCountRange != nil
     }
 
     /// Generate cache key for search results
@@ -173,7 +181,9 @@ struct SearchFilters: Equatable {
         let minPriStr = minPriority.map { String($0) } ?? "nil"
         let maxPriStr = maxPriority.map { String($0) } ?? "nil"
         let dateStr = dateRange.map { "\($0.0.timeIntervalSince1970)-\($0.1.timeIntervalSince1970)" } ?? "nil"
-        return "\(query)|\(categoriesStr)|\(minPriStr)|\(maxPriStr)|\(dateStr)|\(unreadOnly)|\(hasAttachments)"
+        let domainStr = senderDomain ?? "nil"
+        let wordRangeStr = wordCountRange.map { "\($0.min)-\($0.max)" } ?? "nil"
+        return "\(query)|\(categoriesStr)|\(minPriStr)|\(maxPriStr)|\(dateStr)|\(unreadOnly)|\(hasAttachments)|\(domainStr)|\(senderIsVIP)|\(hasActionItems)|\(wordRangeStr)"
     }
 
     static func == (lhs: SearchFilters, rhs: SearchFilters) -> Bool {
@@ -182,6 +192,35 @@ struct SearchFilters: Equatable {
         lhs.minPriority == rhs.minPriority &&
         lhs.maxPriority == rhs.maxPriority &&
         lhs.unreadOnly == rhs.unreadOnly &&
-        lhs.hasAttachments == rhs.hasAttachments
+        lhs.hasAttachments == rhs.hasAttachments &&
+        lhs.senderDomain == rhs.senderDomain &&
+        lhs.senderIsVIP == rhs.senderIsVIP &&
+        lhs.hasActionItems == rhs.hasActionItems &&
+        lhs.wordCountRange?.min == rhs.wordCountRange?.min &&
+        lhs.wordCountRange?.max == rhs.wordCountRange?.max
+    }
+
+    // Quick filter presets
+    static var billsDueThisWeek: SearchFilters {
+        var filters = SearchFilters()
+        filters.categories = [.bills]
+        filters.dateRange = (Date(), Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date())
+        filters.presetName = "Bills Due This Week"
+        return filters
+    }
+
+    static var urgentUnread: SearchFilters {
+        var filters = SearchFilters()
+        filters.unreadOnly = true
+        filters.minPriority = 8
+        filters.presetName = "Urgent Unread"
+        return filters
+    }
+
+    static var fromVIPs: SearchFilters {
+        var filters = SearchFilters()
+        filters.senderIsVIP = true
+        filters.presetName = "From VIPs"
+        return filters
     }
 }

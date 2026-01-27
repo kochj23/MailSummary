@@ -74,6 +74,32 @@ class SearchFilterManager: ObservableObject {
                     continue
                 }
 
+                // Apply sender domain filter (Feature 2)
+                if let domain = filters.senderDomain,
+                   !email.senderEmail.lowercased().contains("@\(domain.lowercased())") {
+                    continue
+                }
+
+                // Apply VIP filter (Feature 2)
+                if filters.senderIsVIP {
+                    // TODO: Check if sender is VIP (will be implemented in Sender Intelligence feature)
+                    // For now, skip this email
+                    continue
+                }
+
+                // Apply action items filter (Feature 2)
+                if filters.hasActionItems && email.actions.isEmpty {
+                    continue
+                }
+
+                // Apply word count filter (Feature 2)
+                if let range = filters.wordCountRange, let body = email.body {
+                    let wordCount = body.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.count
+                    if wordCount < range.min || wordCount > range.max {
+                        continue
+                    }
+                }
+
                 // Text search with field scoring
                 if !query.isEmpty {
                     var score = 0.0

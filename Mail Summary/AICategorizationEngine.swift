@@ -638,3 +638,395 @@ struct ActionableFactors {
         return multiplier
     }
 }
+
+// MARK: - Natural Language Search (Feature 10)
+
+extension AICategorizationEngine {
+    /// Parse natural language query into structured SearchFilters
+    func parseNaturalLanguageQuery(_ query: String) async -> SearchFilters {
+        guard ai.activeBackend != nil else {
+            // Fallback: Extract basic keywords
+            return extractKeywordFilters(from: query)
+        }
+
+        let prompt = """
+        Parse this natural language search query into structured search filters for an email search system.
+
+        Query: "\(query)"
+
+        Extract these filter parameters if mentioned:
+        1. Sender name or email address
+        2. Subject keywords (words that should appear in subject)
+        3. Category (Bills, Orders, Work, Personal, Marketing, Newsletters, Social, Spam, Other)
+        4. Priority level (mentioned as "urgent", "important", "high priority" = 8-10)
+        5. Date range (mentioned as "today", "this week", "last month", etc.)
+        6. Read status ("unread" = unread only)
+        7. Action items ("with deadlines", "needs action" = has action items)
+
+        Examples:
+        - "urgent bills from last week" → category: Bills, minPriority: 8, dateRange: last 7 days
+        - "emails from John about project" → sender contains "John", subject keywords: ["project"]
+        - "unread work emails from today" → category: Work, unread: true, dateRange: today
+
+        Respond with JSON:
+        {
+            "senderContains": "john",
+            "subjectKeywords": ["project", "update"],
+            "category": "Work",
+            "minPriority": 8,
+            "dateRange": "last_week",
+            "unreadOnly": true,
+            "hasActionItems": false
+        }
+
+        If a parameter isn't mentioned, omit it from the JSON. Return only valid JSON.
+        """
+
+        do {
+            let response = try await ai.generate(
+                prompt: prompt,
+                systemPrompt: "You are an expert at parsing natural language queries for email search. Always respond with valid JSON.",
+                temperature: 0.2,
+                maxTokens: 300
+            )
+
+            return parseQueryResponse(response)
+        } catch {
+            print("❌ NL query parsing failed: \(error)")
+            return extractKeywordFilters(from: query)
+        }
+    }
+
+    /// Parse AI response into SearchFilters
+    private func parseQueryResponse(_ json: String) -> SearchFilters {
+        var filters = SearchFilters()
+
+        guard let data = json.data(using: .utf8),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return filters
+        }
+
+        // Extract sender
+        if let sender = dict["senderContains"] as? String {
+            filters.query = sender
+        }
+
+        // Extract subject keywords
+        if let keywords = dict["subjectKeywords"] as? [String], !keywords.isEmpty {
+            if filters.query.isEmpty {
+                filters.query = keywords.joined(separator: " ")
+            }
+        }
+
+        // Extract category
+        if let categoryStr = dict["category"] as? String,
+           let category = Email.EmailCategory(rawValue: categoryStr) {
+            filters.categories.insert(category)
+        }
+
+        // Extract priority
+        if let minPri = dict["minPriority"] as? Int {
+            filters.minPriority = minPri
+        }
+
+        // Extract date range
+        if let dateRangeStr = dict["dateRange"] as? String {
+            filters.dateRange = parseDateRange(dateRangeStr)
+        }
+
+        // Extract unread status
+        if let unread = dict["unreadOnly"] as? Bool {
+            filters.unreadOnly = unread
+        }
+
+        // Extract action items
+        if let hasActions = dict["hasActionItems"] as? Bool {
+            filters.hasActionItems = hasActions
+        }
+
+        return filters
+    }
+
+    /// Parse date range string into Date tuple
+    private func parseDateRange(_ rangeStr: String) -> (Date, Date)? {
+        let now = Date()
+        let calendar = Calendar.current
+
+        switch rangeStr.lowercased() {
+        case "today":
+            let start = calendar.startOfDay(for: now)
+            let end = calendar.date(byAdding: .day, value: 1, to: start) ?? now
+            return (start, end)
+
+        case "yesterday":
+            let start = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: now)) ?? now
+            let end = calendar.startOfDay(for: now)
+            return (start, end)
+
+        case "this_week", "thisweek":
+            let start = calendar.dateComponents([.calendar, .yearForWeekOfYear, .weekOfYear], from: now).date ?? now
+            let end = calendar.date(byAdding: .weekOfYear, value: 1, to: start) ?? now
+            return (start, end)
+
+        case "last_week", "lastweek":
+            let thisWeekStart = calendar.dateComponents([.calendar, .yearForWeekOfYear, .weekOfYear], from: now).date ?? now
+            let start = calendar.date(byAdding: .weekOfYear, value: -1, to: thisWeekStart) ?? now
+            return (start, thisWeekStart)
+
+        case "this_month", "thismonth":
+            let start = calendar.dateComponents([.calendar, .year, .month], from: now).date ?? now
+            let end = calendar.date(byAdding: .month, value: 1, to: start) ?? now
+            return (start, end)
+
+        case "last_month", "lastmonth":
+            let thisMonthStart = calendar.dateComponents([.calendar, .year, .month], from: now).date ?? now
+            let start = calendar.date(byAdding: .month, value: -1, to: thisMonthStart) ?? now
+            return (start, thisMonthStart)
+
+        default:
+            return nil
+        }
+    }
+
+    /// Fallback: Extract basic keyword filters
+    private func extractKeywordFilters(from query: String) -> SearchFilters {
+        var filters = SearchFilters()
+        let lowercased = query.lowercased()
+
+        // Check for unread
+        if lowercased.contains("unread") {
+            filters.unreadOnly = true
+        }
+
+        // Check for urgency
+        if lowercased.contains("urgent") || lowercased.contains("important") || lowercased.contains("priority") {
+            filters.minPriority = 8
+        }
+
+        // Check for categories
+        for category in Email.EmailCategory.allCases {
+            if lowercased.contains(category.rawValue.lowercased()) {
+                filters.categories.insert(category)
+            }
+        }
+
+        // Check for date ranges
+        if lowercased.contains("today") {
+            filters.dateRange = parseDateRange("today")
+        } else if lowercased.contains("this week") || lowercased.contains("thisweek") {
+            filters.dateRange = parseDateRange("this_week")
+        } else if lowercased.contains("last week") || lowercased.contains("lastweek") {
+            filters.dateRange = parseDateRange("last_week")
+        }
+
+        // Remaining text becomes search query
+        var cleanedQuery = query
+        for word in ["unread", "urgent", "important", "priority", "today", "this week", "last week"] {
+            cleanedQuery = cleanedQuery.replacingOccurrences(of: word, with: "", options: .caseInsensitive)
+        }
+        filters.query = cleanedQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return filters
+    }
+}
+
+// MARK: - Email Insights AI (Feature 12)
+
+extension AICategorizationEngine {
+    /// Generate comprehensive email insights using AI and analytics data
+    func generateInsights(emails: [Email], analytics: EmailAnalytics) async -> EmailInsights {
+        guard ai.activeBackend != nil else {
+            return generateBasicInsights(emails: emails, analytics: analytics)
+        }
+
+        // Prepare analytics summary for AI
+        let summary = generateAnalyticsSummary(emails: emails, analytics: analytics)
+
+        let prompt = """
+        Analyze this user's email patterns and generate actionable insights.
+
+        \(summary)
+
+        Generate insights in these categories:
+
+        1. DAILY DIGEST: 2-3 sentence summary of what needs immediate attention
+        2. TRENDS: Identify 2-3 significant patterns (increasing, decreasing, stable)
+        3. RECOMMENDATIONS: 3-5 actionable recommendations with priority (1-10)
+        4. PREDICTIONS: 1-2 predictions about future email patterns
+
+        Respond with JSON:
+        {
+            "dailyDigest": "You have 3 bills due this week and 12 unread work emails requiring attention.",
+            "trends": [
+                {"type": "increasing", "category": "Work", "description": "Work email volume up 40% this week", "percentageChange": 40, "isPositive": false}
+            ],
+            "recommendations": [
+                {"priority": 9, "title": "Review overdue bills", "description": "3 bills are overdue, total $450", "actionable": true, "suggestedAction": "Pay bills", "category": "Bills"}
+            ],
+            "predictions": [
+                {"prediction": "You'll receive 15-20 work emails tomorrow based on weekly patterns", "confidence": 0.75, "basis": "Historical weekday average", "category": "Work"}
+            ]
+        }
+        """
+
+        do {
+            let response = try await ai.generate(
+                prompt: prompt,
+                systemPrompt: "You are an AI email insights analyst. Provide actionable, data-driven insights. Be specific and helpful.",
+                temperature: 0.6,
+                maxTokens: 1000
+            )
+
+            return parseInsights(from: response)
+        } catch {
+            print("❌ AI insights generation failed: \(error)")
+            return generateBasicInsights(emails: emails, analytics: analytics)
+        }
+    }
+
+    /// Generate analytics summary for AI context
+    private func generateAnalyticsSummary(emails: [Email], analytics: EmailAnalytics) -> String {
+        let unreadCount = emails.filter { !$0.isRead }.count
+        let highPriorityCount = emails.filter { ($0.priority ?? 0) >= 8 }.count
+
+        let categoryBreakdown = Dictionary(grouping: emails) { $0.category ?? .other }
+            .map { "\($0.key.rawValue): \($0.value.count)" }
+            .joined(separator: ", ")
+
+        let topSenders = analytics.topSenders(limit: 5)
+            .map { "\($0.email): \($0.stats.totalEmails) emails" }
+            .joined(separator: ", ")
+
+        return """
+        CURRENT INBOX STATE:
+        - Total emails: \(emails.count)
+        - Unread: \(unreadCount)
+        - High priority: \(highPriorityCount)
+        - Categories: \(categoryBreakdown)
+
+        TOP SENDERS:
+        \(topSenders)
+
+        STATISTICS:
+        - Daily stats tracked: \(analytics.dailyStats.count) days
+        - Unique senders: \(analytics.senderStats.count)
+        - Avg response time: \(formatDuration(analytics.responseTimeAvg))
+        """
+    }
+
+    /// Parse AI response into EmailInsights
+    private func parseInsights(from json: String) -> EmailInsights {
+        guard let data = json.data(using: .utf8),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return EmailInsights()
+        }
+
+        let dailyDigest = dict["dailyDigest"] as? String ?? ""
+
+        // Parse trends
+        var trends: [Trend] = []
+        if let trendsArray = dict["trends"] as? [[String: Any]] {
+            for trendDict in trendsArray {
+                if let typeStr = trendDict["type"] as? String,
+                   let type = Trend.TrendType(rawValue: typeStr.capitalized),
+                   let description = trendDict["description"] as? String,
+                   let percentageChange = trendDict["percentageChange"] as? Double {
+                    let category = trendDict["category"] as? String
+                    let isPositive = trendDict["isPositive"] as? Bool ?? true
+                    trends.append(Trend(type: type, category: category, description: description, percentageChange: percentageChange, isPositive: isPositive))
+                }
+            }
+        }
+
+        // Parse recommendations
+        var recommendations: [Recommendation] = []
+        if let recsArray = dict["recommendations"] as? [[String: Any]] {
+            for recDict in recsArray {
+                if let priority = recDict["priority"] as? Int,
+                   let title = recDict["title"] as? String,
+                   let description = recDict["description"] as? String {
+                    let actionable = recDict["actionable"] as? Bool ?? true
+                    let suggestedAction = recDict["suggestedAction"] as? String
+                    let category = recDict["category"] as? String
+                    recommendations.append(Recommendation(priority: priority, title: title, description: description, actionable: actionable, suggestedAction: suggestedAction, category: category))
+                }
+            }
+        }
+
+        // Parse predictions
+        var predictions: [Prediction] = []
+        if let predsArray = dict["predictions"] as? [[String: Any]] {
+            for predDict in predsArray {
+                if let prediction = predDict["prediction"] as? String,
+                   let confidence = predDict["confidence"] as? Double,
+                   let basis = predDict["basis"] as? String {
+                    let category = predDict["category"] as? String
+                    predictions.append(Prediction(prediction: prediction, confidence: confidence, basis: basis, category: category))
+                }
+            }
+        }
+
+        return EmailInsights(dailyDigest: dailyDigest, trends: trends, recommendations: recommendations, predictions: predictions)
+    }
+
+    /// Generate basic insights without AI
+    private func generateBasicInsights(emails: [Email], analytics: EmailAnalytics) -> EmailInsights {
+        var insights = EmailInsights()
+
+        // Basic daily digest
+        let unreadCount = emails.filter { !$0.isRead }.count
+        let highPriorityCount = emails.filter { ($0.priority ?? 0) >= 8 }.count
+        let billsCount = emails.filter { $0.category == .bills }.count
+
+        insights.dailyDigest = "You have \(unreadCount) unread emails"
+        if highPriorityCount > 0 {
+            insights.dailyDigest += ", including \(highPriorityCount) high priority"
+        }
+        if billsCount > 0 {
+            insights.dailyDigest += ". \(billsCount) bills need attention"
+        }
+
+        // Basic trend: email volume change
+        let thisWeek = analytics.totalEmailsReceived(from: Date().addingTimeInterval(-7*86400), to: Date())
+        let lastWeek = analytics.totalEmailsReceived(from: Date().addingTimeInterval(-14*86400), to: Date().addingTimeInterval(-7*86400))
+
+        if lastWeek > 0 {
+            let change = Double(thisWeek - lastWeek) / Double(lastWeek) * 100
+            if abs(change) > 20 {
+                let type: Trend.TrendType = change > 0 ? .increasing : .decreasing
+                let trend = Trend(type: type, category: nil, description: "Email volume \(type.rawValue.lowercased()) by \(Int(abs(change)))% this week", percentageChange: abs(change), isPositive: change < 0)
+                insights.trends.append(trend)
+            }
+        }
+
+        // Basic recommendation: clear old marketing
+        let oldMarketing = emails.filter {
+            $0.category == .marketing &&
+            Date().timeIntervalSince($0.dateReceived) > 7*86400
+        }.count
+
+        if oldMarketing > 0 {
+            insights.recommendations.append(Recommendation(
+                priority: 6,
+                title: "Clear old marketing emails",
+                description: "\(oldMarketing) marketing emails older than 7 days",
+                actionable: true,
+                suggestedAction: "Bulk delete marketing",
+                category: "Marketing"
+            ))
+        }
+
+        return insights
+    }
+
+    /// Format duration for display
+    private func formatDuration(_ interval: TimeInterval) -> String {
+        if interval < 3600 {
+            return "\(Int(interval/60)) minutes"
+        } else if interval < 86400 {
+            return "\(Int(interval/3600)) hours"
+        } else {
+            return "\(Int(interval/86400)) days"
+        }
+    }
+}
