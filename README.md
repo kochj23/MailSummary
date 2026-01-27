@@ -339,6 +339,37 @@ Autonomous meeting management:
 
 ---
 
+## Requirements
+
+### System Requirements
+- **macOS 13.0 (Ventura) or later**
+- **Architecture**: Universal (Apple Silicon and Intel)
+- **Mail.app**: macOS native email client
+- **Xcode 15.0+** (for building from source)
+
+### AI Backend Requirements
+**Choose one (or multiple):**
+- **Ollama** (Recommended): Free, local, private
+  - Install: `brew install ollama`
+  - Models: mistral, llama3, gemma, etc.
+- **MLX** (Apple Silicon only): Native Neural Engine
+  - Install: `pip install mlx-lm`
+- **TinyLLM/TinyChat**: Lightweight alternatives
+- **OpenWebUI**: Self-hosted option
+- **Cloud AI** (Optional): OpenAI, Google, Azure, AWS, IBM Watson
+
+### Dependencies
+**Built-in (No Installation Required):**
+- SwiftUI (UI framework)
+- MailKit (email access)
+- Foundation (core functionality)
+
+**Optional (For AI):**
+- Ollama or MLX for local AI
+- Cloud API keys for cloud AI
+
+---
+
 ## 🚀 Quick Start
 
 ### Installation:
