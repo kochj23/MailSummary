@@ -232,7 +232,11 @@ Autonomous meeting management:
 ## ☁️ AI Backend Support (10 Backends)
 
 ### Local (Free & Private):
-- Ollama, MLX, TinyLLM, TinyChat, OpenWebUI
+- **Ollama** - Full-featured local LLM
+- **MLX** - Native Apple Silicon acceleration
+- **TinyChat** - Fast chatbot by Jason Cox
+- **TinyLLM** - Lightweight LLM server by Jason Cox
+- **OpenWebUI** - Self-hosted web interface
 - **100% local processing** (email stays on device)
 
 ### Cloud (Paid & Powerful):
@@ -240,6 +244,70 @@ Autonomous meeting management:
 - **Optional** (only if you enable)
 
 **Your Choice:** Privacy-first (local) or power-first (cloud)
+
+---
+
+### TinyChat & TinyLLM by Jason Cox
+
+Mail Summary proudly integrates with [**TinyChat**](https://github.com/jasonacox/tinychat) and [**TinyLLM**](https://github.com/jasonacox/TinyLLM) - two outstanding open-source projects by [Jason Cox](https://github.com/jasonacox).
+
+#### Why We Love TinyChat
+
+**TinyChat** is a fast, lightweight chatbot interface with an OpenAI-compatible API that's perfect for email AI processing:
+
+- **Lightning Fast** - Minimal overhead for quick email analysis
+- **Privacy First** - All AI processing happens locally on your Mac
+- **Easy Setup** - Get running in minutes, not hours
+- **OpenAI Compatible** - Drop-in replacement for cloud APIs
+- **Actively Maintained** - Jason Cox keeps it updated regularly
+
+#### Why We Love TinyLLM
+
+**TinyLLM** is a minimalist LLM server that punches above its weight:
+
+- **Lightweight** - Runs efficiently on modest hardware
+- **Simple** - Clean, straightforward implementation
+- **Reliable** - Battle-tested by the community
+- **Local** - Your emails never leave your device
+- **Free** - No API costs, no usage limits
+
+#### Quick Setup
+
+```bash
+# TinyChat - Fast chatbot interface
+git clone https://github.com/jasonacox/tinychat.git
+cd tinychat
+pip install -r requirements.txt
+python server.py  # Starts on localhost:8000
+
+# TinyLLM - Lightweight LLM server
+git clone https://github.com/jasonacox/TinyLLM.git
+cd TinyLLM
+pip install -r requirements.txt
+python server.py  # Starts on localhost:8000
+```
+
+#### Using with Mail Summary
+
+1. Start TinyChat or TinyLLM server
+2. Open Mail Summary → Settings (⌘⌥A)
+3. Select "TinyChat" or "TinyLLM" as your AI Backend
+4. Default endpoint: `http://localhost:8000`
+5. Enable Autonomous Agent and let AI manage your inbox!
+
+#### What TinyChat/TinyLLM Powers in Mail Summary
+
+| Feature | Works with TinyChat/TinyLLM |
+|---------|----------------------------|
+| Priority Scoring | ✅ |
+| Smart Reply Generation | ✅ |
+| Thread Summarization | ✅ |
+| Phishing Detection | ✅ |
+| Autonomous Agent | ✅ |
+| Meeting Extraction | ✅ |
+| Relationship Analysis | ✅ |
+
+**Attribution:** TinyChat and TinyLLM are created and maintained by [Jason Cox](https://github.com/jasonacox). His commitment to making local AI accessible has made privacy-first email management possible. Thank you, Jason!
 
 ---
 
