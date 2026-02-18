@@ -10,6 +10,8 @@
 ![Automation](https://img.shields.io/badge/Automation-90%25-brightgreen)
 ![Ethics](https://img.shields.io/badge/Ethics-Protected-green)
 
+![Mail Summary](Screenshots/main-window.png)
+
 ---
 
 ## 🆕 What's New in v2.2.0 (January 2026)
