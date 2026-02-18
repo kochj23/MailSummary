@@ -708,3 +708,17 @@ By 2029, Mail Summary will:
 **Mail Summary v2.1 - Where inbox management becomes obsolete.**
 
 © 2026 Jordan Koch. All rights reserved.
+
+---
+
+## More Apps by Jordan Koch
+
+| App | Description |
+|-----|-------------|
+| [NewsSummary](https://github.com/kochj23/NewsSummary) | AI-powered news aggregation and summarization |
+| [JiraSummary](https://github.com/kochj23/JiraSummary) | AI-powered Jira dashboard with sprint analytics |
+| [MBox-Explorer](https://github.com/kochj23/MBox-Explorer) | macOS mbox email archive viewer |
+| [MLXCode](https://github.com/kochj23/MLXCode) | Local AI coding assistant for Apple Silicon |
+| [ExcelExplorer](https://github.com/kochj23/ExcelExplorer) | Native macOS Excel/CSV file viewer |
+
+> **[View all projects](https://github.com/kochj23?tab=repositories)**
