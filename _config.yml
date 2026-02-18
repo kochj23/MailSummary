@@ -1,0 +1,3 @@
+theme: jekyll-theme-cayman
+title: "MailSummary"
+description: "AI-powered email assistant for macOS — summarize, search, and analyze Apple Mail with local LLM support via Ollama and MLX. Built with Swift and SwiftUI."
