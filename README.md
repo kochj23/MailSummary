@@ -1,5 +1,7 @@
 # Mail Summary v2.2 - The AI That Manages Your Inbox
 
+![Build](https://github.com/kochj23/MailSummary/actions/workflows/build.yml/badge.svg)
+
 **Autonomous Email Assistant with 90% Automation**
 
 ![Platform](https://img.shields.io/badge/platform-macOS%2013.0%2B-blue)
