@@ -7,8 +7,8 @@ Mail Summary is currently showing **sample data** because it doesn't have permis
 ### The Issue:
 
 Your Mail.app has ~300 unread emails in:
-- Digitalnoise Gmail account
-- kochjpar@gmail.com account
+- Your primary Gmail account
+- your-email@example.com account
 
 But Mail Summary can't access `~/Library/Mail/` because of macOS privacy protections.
 
