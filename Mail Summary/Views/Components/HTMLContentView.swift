@@ -34,6 +34,7 @@ struct HTMLContentView: NSViewRepresentable {
         <!DOCTYPE html>
         <html>
         <head>
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data: cid:;">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <meta charset="UTF-8">
             <style>

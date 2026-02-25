@@ -1,16 +1,40 @@
-# Mail Summary v2.2 - The AI That Manages Your Inbox
+# Mail Summary v3.0 - The AI That Manages Your Inbox
 
 ![Build](https://github.com/kochj23/MailSummary/actions/workflows/build.yml/badge.svg)
 
 **Autonomous Email Assistant with 90% Automation**
 
-![Platform](https://img.shields.io/badge/platform-macOS%2013.0%2B-blue)
+![Platform](https://img.shields.io/badge/platform-macOS%2014.0%2B-blue)
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-2.2.0-success)
+![Version](https://img.shields.io/badge/version-3.0.0-success)
 ![AI](https://img.shields.io/badge/AI-10%20Backends-purple)
 ![Automation](https://img.shields.io/badge/Automation-90%25-brightgreen)
 ![Ethics](https://img.shields.io/badge/Ethics-Protected-green)
+![Widget](https://img.shields.io/badge/Widget-WidgetKit-cyan)
+
+---
+
+## 🆕 What's New in v3.0.0 (February 2026)
+
+### 📱 macOS Widget Support (NEW!)
+**See your email stats at a glance with WidgetKit integration:**
+
+- **Small Widget** - Unread count and high-priority badge
+- **Medium Widget** - Stats overview + AI-handled email count
+- **Large Widget** - Full dashboard with AI summary and categories
+- **Real-time Updates** - Syncs via App Group every 15 minutes
+- **Time Saved Display** - See how much time AI saved you today
+
+**Widget Features:**
+- Unread email count with high-priority indicator
+- Time saved today (calculated from AI-handled emails)
+- Emails handled automatically count
+- Top categories breakdown
+- AI summary text
+- Inbox Zero streak counter
+
+**App Group:** `group.com.jkoch.mailsummary`
 
 ![Mail Summary](Screenshots/main-window.png)
 
@@ -492,6 +516,8 @@ cp -R build/Release/"Mail Summary.app" ~/Applications/
 - **Data leak prevention**
 - **Real-time protection**
 - **Malware warnings**
+- **Content Security Policy** - HTML email rendering uses strict CSP headers (`default-src 'none'`), blocking all external scripts, frames, and network requests to prevent XSS and tracking pixel attacks
+- **JavaScript disabled** - WKWebView email renderer has JavaScript execution disabled entirely
 
 ---
 
