@@ -250,7 +250,7 @@ Autonomous meeting management:
   - Generic greetings
   - Spelling errors
   - Sender mismatches
-- **Data leak prevention** (SSN, credit cards, passwords)
+- **Data leak prevention** (SSN (Social Security Number), credit cards, passwords)
 - **Real-time protection**
 
 **Why It's Legendary:** Email threats increasing. AI protector prevents disasters.
@@ -260,8 +260,8 @@ Autonomous meeting management:
 ## ☁️ AI Backend Support (10 Backends)
 
 ### Local (Free & Private):
-- **Ollama** - Full-featured local LLM
-- **MLX** - Native Apple Silicon acceleration
+- **Ollama** - Full-featured local LLM (Large Language Model)
+- **MLX (Machine Learning eXtensions)** - Native Apple Silicon acceleration
 - **TinyChat** - Fast chatbot by Jason Cox
 - **TinyLLM** - Lightweight LLM server by Jason Cox
 - **OpenWebUI** - Self-hosted web interface
@@ -516,7 +516,7 @@ cp -R build/Release/"Mail Summary.app" ~/Applications/
 - **Data leak prevention**
 - **Real-time protection**
 - **Malware warnings**
-- **Content Security Policy** - HTML email rendering uses strict CSP headers (`default-src 'none'`), blocking all external scripts, frames, and network requests to prevent XSS and tracking pixel attacks
+- **Content Security Policy** - HTML (Hypertext Markup Language) email rendering uses strict CSP (Content Security Policy) headers (`default-src 'none'`), blocking all external scripts, frames, and network requests to prevent XSS (Cross-Site Scripting) and tracking pixel attacks
 - **JavaScript disabled** - WKWebView email renderer has JavaScript execution disabled entirely
 
 ---
