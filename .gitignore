@@ -7,5 +7,10 @@ DerivedData/
 *.xcuserstate
 xcuserdata/
 
+# Backup files
+*.bak
+*.bak[0-9]*
+*.backup
+
 # macOS
 .DS_Store

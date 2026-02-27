@@ -23,14 +23,14 @@ But Mail Summary can't access `~/Library/Mail/` because of macOS privacy protect
 
 ### Step 2: Add Mail Summary
 1. Click the **+** button
-2. Navigate to `/Users/kochj/Applications/`
+2. Navigate to `~/Applications/`
 3. Select **Mail Summary.app**
 4. Click **Open**
 5. Toggle should turn **ON** (blue)
 
 ### Step 3: Restart Mail Summary
 1. Quit Mail Summary (Cmd+Q)
-2. Reopen: `open "/Users/kochj/Applications/Mail Summary.app"`
+2. Reopen: `open ~/Applications/Mail\ Summary.app`
 3. Click **"Scan Now"** button
 4. App will now read your real Mail.app mailbox
 5. Should show ~300 emails from both Gmail accounts
@@ -87,7 +87,7 @@ If you prefer not to grant Full Disk Access, Mail Summary works in "Demo Mode" w
 - Click "Scan Now"
 
 **"Can't find Mail Summary in Applications"**
-- It's in: `/Users/kochj/Applications/Mail Summary.app`
+- It's in: `~/Applications/Mail Summary.app`
 - Use Finder → Go → Go to Folder → `~/Applications`
 
 **"Mail.app has no emails"**
