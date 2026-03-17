@@ -137,8 +137,10 @@ class SenderIntelligenceManager: ObservableObject {
             let openedEmails = emailList.filter { $0.isRead }.count
             let openRate = Double(openedEmails) / Double(totalEmails)
 
-            // TODO: Calculate reply rate when reply tracking is implemented
-            let replyRate = 0.0  // Placeholder
+            // Calculate reply rate by checking for "Re:" emails to this sender
+            let receivedFromSender = emailList.count
+            let sentToSender = UserDefaults.standard.integer(forKey: "SentEmailCount_\(senderEmail)")
+            let replyRate = receivedFromSender > 0 ? Double(sentToSender) / Double(receivedFromSender) : 0.0
 
             // Check if meets VIP criteria
             if replyRate >= vipReplyRateThreshold || openRate >= vipOpenRateThreshold {

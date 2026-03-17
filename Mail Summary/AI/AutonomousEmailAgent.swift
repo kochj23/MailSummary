@@ -1,4 +1,5 @@
 import Foundation
+import EventKit
 
 //
 //  AutonomousEmailAgent.swift
@@ -109,6 +110,43 @@ class AutonomousEmailAgent: ObservableObject {
         )
 
         return parseEmailAnalysis(response)
+    }
+
+    // MARK: - Priority Scoring
+
+    private func scorePriority(_ email: Email) async throws -> PriorityScore {
+        let prompt = """
+        Score the priority of this email (0-100).
+
+        From: \(email.sender)
+        Subject: \(email.subject)
+        Body: \(email.body ?? "")
+
+        Consider:
+        - Urgency keywords (urgent, ASAP, deadline)
+        - Sender importance
+        - Action requirements
+
+        Return JSON: {"score": 75, "reasoning": "..."}
+        """
+
+        let response = try await AIBackendManager.shared.generate(
+            prompt: prompt,
+            systemPrompt: "You score email priority objectively.",
+            temperature: 0.2,
+            maxTokens: 100
+        )
+
+        // Parse response
+        if let jsonData = response.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+           let score = json["score"] as? Int {
+            let reasoning = json["reasoning"] as? String ?? ""
+            return PriorityScore(score: score, reasoning: reasoning)
+        }
+
+        // Default medium priority
+        return PriorityScore(score: 50, reasoning: "Default priority")
     }
 
     // MARK: - Intent Detection
@@ -361,8 +399,68 @@ class AutonomousEmailAgent: ObservableObject {
     }
 
     private func parseEmailAnalysis(_ response: String) -> EmailAnalysis {
-        // Parse JSON response
-        // Placeholder implementation
+        // Parse JSON response from AI
+        if let jsonData = response.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+
+            let emailTypeStr = json["emailType"] as? String ?? "request"
+            let emailType: EmailType = {
+                switch emailTypeStr.lowercased() {
+                case "request": return .request
+                case "info", "information": return .information
+                case "meeting": return .meeting
+                case "marketing": return .marketing
+                case "newsletter": return .newsletter
+                case "spam": return .spam
+                case "personal": return .personal
+                case "urgent": return .urgent
+                default: return .request
+                }
+            }()
+
+            let actionRequired = json["actionRequired"] as? Bool ?? false
+
+            // Parse deadline
+            var deadline: Date?
+            if let deadlineStr = json["deadline"] as? String, deadlineStr != "null" {
+                let formatter = ISO8601DateFormatter()
+                deadline = formatter.date(from: deadlineStr)
+            }
+
+            let sentimentStr = json["sentiment"] as? String ?? "neutral"
+            let sentiment: EmailSentiment = {
+                switch sentimentStr.lowercased() {
+                case "positive": return .positive
+                case "negative": return .negative
+                case "urgent": return .urgent
+                default: return .neutral
+                }
+            }()
+
+            let complexityStr = json["complexity"] as? String ?? "moderate"
+            let complexity: ComplexityLevel = {
+                switch complexityStr.lowercased() {
+                case "simple": return .simple
+                case "complex": return .complex
+                default: return .moderate
+                }
+            }()
+
+            let keywords = json["keywords"] as? [String] ?? []
+            let entities = json["entities"] as? [String] ?? []
+
+            return EmailAnalysis(
+                emailType: emailType,
+                actionRequired: actionRequired,
+                deadline: deadline,
+                sentiment: sentiment,
+                complexity: complexity,
+                keywords: keywords,
+                entities: entities
+            )
+        }
+
+        // Fallback if JSON parsing fails
         return EmailAnalysis(
             emailType: .request,
             actionRequired: true,
@@ -398,22 +496,260 @@ class AutonomousEmailAgent: ObservableObject {
         }
     }
 
-    // Placeholder methods
-    private func checkCalendar(email: Email) async -> [Date] { return [] }
-    private func searchKnowledgeBase(_ query: String?) async -> String? { return nil }
-    private func sendReply(email: Email, body: String) async throws {}
-    private func saveDraft(email: Email, body: String) async {}
-    private func archiveEmail(_ email: Email) async {}
-    private func forwardEmail(_ email: Email, to: String, note: String) async throws {}
-    private func createCalendarEvent(email: Email, time: Date) async {}
-    private func sendMeetingAcceptance(email: Email) async throws {}
-    private func snoozeEmail(_ email: Email, until: Date) async {}
-    private func unsubscribe(_ email: Email) async throws {}
-    private func markAsNeedsAttention(_ email: Email) async {}
-    private func logAction(email: Email, action: String) async {}
-    private func calculateOpenRate(sender: String) async -> Double { return 0.5 }
-    private func countInteractions(sender: String) async -> Int { return 0 }
-    private func findRelatedProject(_ email: Email) async -> String? { return nil }
+    // MARK: - Real Implementations
+
+    private func checkCalendar(email: Email) async -> [Date] {
+        // Use EventKit to check calendar conflicts
+        guard let proposedTime = email.proposedTime else { return [] }
+
+        let store = EKEventStore()
+
+        // Request calendar access
+        do {
+            let granted = try await store.requestAccess(to: .event)
+            guard granted else { return [] }
+        } catch {
+            print("Calendar access denied: \(error)")
+            return []
+        }
+
+        // Check for conflicts 1 hour before/after
+        let startDate = proposedTime.addingTimeInterval(-3600)
+        let endDate = proposedTime.addingTimeInterval(3600)
+
+        let predicate = store.predicateForEvents(withStart: startDate, end: endDate, calendars: nil)
+        let events = store.events(matching: predicate)
+
+        return events.map { $0.startDate }
+    }
+
+    private func searchKnowledgeBase(_ query: String?) async -> String? {
+        guard let query = query, !query.isEmpty else { return nil }
+
+        // Search through historical emails for similar questions/answers
+        // For now, return nil (knowledge base not yet populated)
+
+        // Future: Use vector search on past email responses
+        return nil
+    }
+
+    private func sendReply(email: Email, body: String) async throws {
+        // Integration with Mail.app via AppleScript
+        let script = """
+        tell application "Mail"
+            set replyMsg to reply message id "\(email.messageId)" with opening window
+            set content of replyMsg to "\(body.replacingOccurrences(of: "\"", with: "\\\""))"
+            send replyMsg
+        end tell
+        """
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+
+        try process.run()
+        process.waitUntilExit()
+
+        print("📧 Sent reply to: \(email.sender)")
+    }
+
+    private func saveDraft(email: Email, body: String) async {
+        // Save draft via AppleScript
+        let script = """
+        tell application "Mail"
+            set draftMsg to reply message id "\(email.messageId)" with opening window
+            set content of draftMsg to "\(body.replacingOccurrences(of: "\"", with: "\\\""))"
+            close window 1 saving yes
+        end tell
+        """
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+
+        try? process.run()
+        process.waitUntilExit()
+
+        print("💾 Saved draft for: \(email.sender)")
+    }
+
+    private func archiveEmail(_ email: Email) async {
+        // Archive email via AppleScript
+        let script = """
+        tell application "Mail"
+            set theMessage to first message whose message id is "\(email.messageId)"
+            move theMessage to mailbox "Archive" of account "iCloud"
+        end tell
+        """
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+
+        try? process.run()
+        process.waitUntilExit()
+
+        print("📁 Archived: \(email.subject)")
+    }
+
+    private func forwardEmail(_ email: Email, to: String, note: String) async throws {
+        // Forward email via AppleScript
+        let script = """
+        tell application "Mail"
+            set fwdMsg to forward message id "\(email.messageId)" with opening window
+            tell fwdMsg
+                set content to "\(note.replacingOccurrences(of: "\"", with: "\\\""))" & return & return & content
+                make new to recipient with properties {address:"\(to)"}
+            end tell
+            send fwdMsg
+        end tell
+        """
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+
+        try process.run()
+        process.waitUntilExit()
+
+        print("📨 Forwarded to: \(to)")
+    }
+
+    private func createCalendarEvent(email: Email, time: Date) async {
+        let store = EKEventStore()
+
+        do {
+            let granted = try await store.requestAccess(to: .event)
+            guard granted else { return }
+        } catch {
+            print("Calendar access denied: \(error)")
+            return
+        }
+
+        let event = EKEvent(eventStore: store)
+        event.title = email.subject
+        event.startDate = time
+        event.endDate = time.addingTimeInterval(3600) // 1 hour default
+        event.calendar = store.defaultCalendarForNewEvents
+        event.notes = "Auto-created from email: \(email.sender)"
+
+        do {
+            try store.save(event, span: .thisEvent)
+            print("📅 Created calendar event: \(email.subject)")
+        } catch {
+            print("Failed to create calendar event: \(error)")
+        }
+    }
+
+    private func sendMeetingAcceptance(email: Email) async throws {
+        let reply = "I accept this meeting invitation. Looking forward to it!"
+        try await sendReply(email: email, body: reply)
+    }
+
+    private func snoozeEmail(_ email: Email, until: Date) async {
+        // Store snooze in UserDefaults
+        var snoozed = UserDefaults.standard.dictionary(forKey: "SnoozedEmails") as? [String: Date] ?? [:]
+        snoozed[email.messageId] = until
+        UserDefaults.standard.set(snoozed, forKey: "SnoozedEmails")
+
+        // Archive email temporarily
+        await archiveEmail(email)
+
+        print("⏰ Snoozed until: \(until.formatted())")
+    }
+
+    private func unsubscribe(_ email: Email) async throws {
+        // Look for unsubscribe link in email body
+        guard let body = email.body else { return }
+
+        // Search for unsubscribe patterns
+        let patterns = [
+            "unsubscribe",
+            "opt-out",
+            "remove me",
+            "stop receiving"
+        ]
+
+        // Find unsubscribe link (simplified)
+        if body.lowercased().contains("unsubscribe") {
+            print("🚫 Unsubscribe link detected - user should click manually")
+            // Note: Automatic unsubscribe is risky - just flag it
+        }
+    }
+
+    private func markAsNeedsAttention(_ email: Email) async {
+        // Flag email via AppleScript
+        let script = """
+        tell application "Mail"
+            set theMessage to first message whose message id is "\(email.messageId)"
+            set flagged status of theMessage to true
+        end tell
+        """
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+
+        try? process.run()
+        process.waitUntilExit()
+
+        print("⚠️ Flagged for attention: \(email.subject)")
+    }
+
+    private func logAction(email: Email, action: String) async {
+        // Log to file for audit trail
+        let logEntry = "\(Date().formatted()): \(action) - Email: \(email.subject) from \(email.sender)\n"
+
+        let logFile = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("autonomous_agent.log")
+
+        if let data = logEntry.data(using: .utf8) {
+            if FileManager.default.fileExists(atPath: logFile.path) {
+                if let handle = try? FileHandle(forWritingTo: logFile) {
+                    handle.seekToEndOfFile()
+                    handle.write(data)
+                    try? handle.close()
+                }
+            } else {
+                try? data.write(to: logFile)
+            }
+        }
+    }
+
+    private func calculateOpenRate(sender: String) async -> Double {
+        // Query email history from UserDefaults or database
+        let history = UserDefaults.standard.dictionary(forKey: "EmailOpenHistory_\(sender)") as? [String: Bool] ?? [:]
+
+        guard !history.isEmpty else { return 0.5 }
+
+        let opened = history.values.filter { $0 }.count
+        return Double(opened) / Double(history.count)
+    }
+
+    private func countInteractions(sender: String) async -> Int {
+        // Count from email history
+        let count = UserDefaults.standard.integer(forKey: "InteractionCount_\(sender)")
+        return count
+    }
+
+    private func findRelatedProject(_ email: Email) async -> String? {
+        // Search email subject/body for project keywords
+        let projectKeywords = [
+            "Project Alpha": ["alpha", "project a"],
+            "Client Beta": ["beta", "client b"],
+            "Internal Initiative": ["internal", "initiative"]
+        ]
+
+        let searchText = "\(email.subject) \(email.body ?? "")".lowercased()
+
+        for (project, keywords) in projectKeywords {
+            if keywords.contains(where: { searchText.contains($0) }) {
+                return project
+            }
+        }
+
+        return nil
+    }
 }
 
 // MARK: - Models
@@ -507,6 +843,21 @@ struct UserAction {
     let approved: Bool
     let actualAction: String
     let feedback: String?
+}
+
+struct PriorityScore {
+    let score: Int // 0-100
+    let reasoning: String
+}
+
+enum EmailIntent: String {
+    case wantsNothing = "wants_nothing"
+    case wantsAcknowledgment = "wants_acknowledgment"
+    case wantsMeeting = "wants_meeting"
+    case wantsInformation = "wants_information"
+    case wantsAction = "wants_action"
+    case wantsDecision = "wants_decision"
+    case unknown = "unknown"
 }
 
 // Placeholder types

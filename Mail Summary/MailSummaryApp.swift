@@ -12,6 +12,10 @@ import SwiftUI
 struct MailSummaryApp: App {
     @StateObject private var mailEngine = MailEngine()
 
+    init() {
+        NovaAPIServer.shared.start()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -27,7 +31,7 @@ struct MailSummaryApp: App {
         }
 
         Settings {
-            AIBackendSettingsView()
+            AIBackendSelectionView()
         }
         #endif
     }

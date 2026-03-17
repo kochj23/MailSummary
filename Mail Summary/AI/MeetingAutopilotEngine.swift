@@ -1,4 +1,5 @@
 import Foundation
+import EventKit
 
 //
 //  MeetingAutopilotEngine.swift
@@ -459,25 +460,126 @@ class MeetingAutopilotEngine: ObservableObject {
         throw MeetingError.parsingFailed
     }
 
-    // MARK: - Placeholder Methods
+    // MARK: - Real Implementations
 
     private func createCalendarEvent(email: Email, startTime: Date, tentative: Bool = false) async {
-        // Placeholder: Create calendar event via EventKit
-        print("📅 Created calendar event: \(email.subject)")
+        let store = EKEventStore()
+
+        do {
+            let granted = try await store.requestAccess(to: .event)
+            guard granted else {
+                print("Calendar access denied")
+                return
+            }
+        } catch {
+            print("Calendar access error: \(error)")
+            return
+        }
+
+        let event = EKEvent(eventStore: store)
+        event.title = email.subject
+        event.startDate = startTime
+        event.endDate = startTime.addingTimeInterval(3600) // Default 1 hour
+        event.calendar = store.defaultCalendarForNewEvents
+        event.notes = "Auto-created by Meeting Autopilot\nFrom: \(email.sender)"
+
+        if tentative {
+            event.availability = .tentative
+        }
+
+        do {
+            try store.save(event, span: .thisEvent)
+            print("📅 Created calendar event: \(email.subject) \(tentative ? "(tentative)" : "")")
+        } catch {
+            print("Failed to create calendar event: \(error)")
+        }
     }
 
     private func sendMeetingResponse(email: Email, accepted: Bool, message: String?) async throws {
-        // Placeholder: Send meeting accept/decline email
+        let responseBody = """
+        \(accepted ? "I accept this meeting invitation." : "Unfortunately, I cannot attend this meeting.")
+
+        \(message ?? "")
+
+        Thanks,
+        (Auto-sent by Meeting Autopilot)
+        """
+
+        // Send via AppleScript
+        let script = """
+        tell application "Mail"
+            set replyMsg to reply message id "\(email.messageId)" with opening window
+            set content of replyMsg to "\(responseBody.replacingOccurrences(of: "\"", with: "\\\""))"
+            send replyMsg
+        end tell
+        """
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+
+        try process.run()
+        process.waitUntilExit()
+
         print("📧 Sent meeting response: \(accepted ? "Accepted" : "Declined")")
     }
 
     private func sendAlternativeTimeProposal(email: Email, times: [Date], reason: String) async throws {
-        // Placeholder: Send alternative time proposal
-        print("🔄 Proposed alternative times")
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .short
+
+        let timesText = times.map { dateFormatter.string(from: $0) }.joined(separator: "\n- ")
+
+        let responseBody = """
+        Thank you for the meeting invitation. Unfortunately, I have a conflict at the proposed time.
+
+        \(reason)
+
+        Would any of these alternative times work?
+        - \(timesText)
+
+        Let me know what works best.
+
+        Thanks,
+        (Auto-sent by Meeting Autopilot)
+        """
+
+        // Send via AppleScript
+        let script = """
+        tell application "Mail"
+            set replyMsg to reply message id "\(email.messageId)" with opening window
+            set content of replyMsg to "\(responseBody.replacingOccurrences(of: "\"", with: "\\\""))"
+            send replyMsg
+        end tell
+        """
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+
+        try process.run()
+        process.waitUntilExit()
+
+        print("🔄 Proposed alternative times for: \(email.subject)")
     }
 
     private func flagForReview(email: Email) async {
-        // Placeholder: Flag email for user review
+        // Flag email via AppleScript
+        let script = """
+        tell application "Mail"
+            set theMessage to first message whose message id is "\(email.messageId)"
+            set flagged status of theMessage to true
+        end tell
+        """
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+
+        try? process.run()
+        process.waitUntilExit()
+
         print("⚠️ Flagged for review: \(email.subject)")
     }
 

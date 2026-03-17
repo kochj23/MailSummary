@@ -15,13 +15,18 @@ class MailParser {
 
     /// Load email metadata in batches (fast, no bodies)
     /// This loads subject, sender, date, messageId for up to 500 emails in ~5 seconds
-    func parseEmails(limit: Int = 500, batchSize: Int = 50) async -> [Email] {
+    /// OPTIMIZED: Increased batch size to 100 for fewer AppleScript calls
+    func parseEmails(limit: Int = 500, batchSize: Int = 100) async -> [Email] {
+        #if DEBUG
         print("📧 Loading email metadata from Mail.app (batched)...")
+        #endif
 
         // Check if Mail.app is running
         if !isMailAppRunning() {
+            #if DEBUG
             print("⚠️ Mail.app is not running. Using sample data.")
             print("💡 Open Mail.app first, then click 'Scan Now' in Mail Summary")
+            #endif
             return sampleEmails()
         }
 
@@ -32,24 +37,32 @@ class MailParser {
             let offset = batchIndex * batchSize
             let batchLimit = min(batchSize, limit - offset)
 
+            #if DEBUG
             print("📦 Loading batch \(batchIndex + 1)/\(totalBatches) (emails \(offset + 1)-\(offset + batchLimit))...")
+            #endif
 
             let batchEmails = await loadMetadataBatch(offset: offset, limit: batchLimit, startId: offset)
             allEmails.append(contentsOf: batchEmails)
 
             // Stop if we got fewer emails than requested (no more emails)
             if batchEmails.count < batchLimit {
+                #if DEBUG
                 print("✅ Loaded all available emails (\(allEmails.count) total)")
+                #endif
                 break
             }
         }
 
         if allEmails.isEmpty {
+            #if DEBUG
             print("⚠️ No emails found. Using sample data.")
+            #endif
             return sampleEmails()
         }
 
+        #if DEBUG
         print("✅ Loaded \(allEmails.count) email metadata records from Mail.app")
+        #endif
         return allEmails
     }
 
@@ -112,7 +125,9 @@ class MailParser {
                         try? await Task.sleep(nanoseconds: UInt64(timeoutSeconds * 1_000_000_000))
                         if !processCompleted {
                             timedOut = true
+                            #if DEBUG
                             print("⏱️ Batch timed out after \(timeoutSeconds)s - terminating...")
+                            #endif
                             process.terminate()
                         }
                     }
@@ -120,14 +135,18 @@ class MailParser {
                     process.waitUntilExit()
 
                     if timedOut {
+                        #if DEBUG
                         print("❌ Batch timed out.")
+                        #endif
                         continuation.resume(returning: [])
                         return
                     }
 
                     let data = pipe.fileHandleForReading.readDataToEndOfFile()
                     guard let output = String(data: data, encoding: .utf8), !output.isEmpty else {
+                        #if DEBUG
                         print("❌ Batch returned no data")
+                        #endif
                         continuation.resume(returning: [])
                         return
                     }
@@ -137,7 +156,9 @@ class MailParser {
                     continuation.resume(returning: emails)
 
                 } catch {
+                    #if DEBUG
                     print("❌ Batch error: \(error)")
+                    #endif
                     continuation.resume(returning: [])
                 }
             }
@@ -146,7 +167,9 @@ class MailParser {
 
     /// Load email body on-demand for a specific message
     func loadEmailBody(messageId: String) async -> String? {
+        #if DEBUG
         print("📄 Loading body for message ID: \(messageId)...")
+        #endif
 
         if !isMailAppRunning() {
             return nil
@@ -197,7 +220,9 @@ class MailParser {
                     process.waitUntilExit()
 
                     if timedOut {
+                        #if DEBUG
                         print("⏱️ Body load timed out")
+                        #endif
                         continuation.resume(returning: nil)
                         return
                     }
@@ -210,16 +235,22 @@ class MailParser {
 
                     // Check for AppleScript errors
                     if output.hasPrefix("ERROR:") {
+                        #if DEBUG
                         print("❌ AppleScript error: \(output)")
+                        #endif
                         continuation.resume(returning: nil)
                         return
                     }
 
+                    #if DEBUG
                     print("✅ Loaded body (\(output.count) chars)")
+                    #endif
                     continuation.resume(returning: output)
 
                 } catch {
+                    #if DEBUG
                     print("❌ Body load error: \(error)")
+                    #endif
                     continuation.resume(returning: nil)
                 }
             }
@@ -244,7 +275,9 @@ class MailParser {
             // Each message is pipe-delimited: messageId|subject|sender|date|isRead
             let parts = messageString.components(separatedBy: "|")
             guard parts.count >= 5 else {
+                #if DEBUG
                 print("⚠️ Skipping malformed message: \(parts.count) parts")
+                #endif
                 continue
             }
 

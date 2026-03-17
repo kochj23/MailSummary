@@ -168,11 +168,33 @@ struct SearchFilters: Equatable {
     var wordCountRange: (min: Int, max: Int)? = nil
     var presetName: String? = nil  // For saved filter presets
 
+    // Regex search (NEW)
+    var useRegex: Bool = false
+    var regexPattern: String? = nil  // Compiled regex pattern
+
     /// Check if any filters are active
     var isActive: Bool {
         !query.isEmpty || !categories.isEmpty || minPriority != nil ||
         maxPriority != nil || dateRange != nil || unreadOnly || hasAttachments ||
-        senderDomain != nil || senderIsVIP || hasActionItems || wordCountRange != nil
+        senderDomain != nil || senderIsVIP || hasActionItems || wordCountRange != nil ||
+        (useRegex && regexPattern != nil)
+    }
+
+    /// Validate regex pattern
+    var isValidRegex: Bool {
+        guard useRegex, let pattern = regexPattern, !pattern.isEmpty else { return true }
+        do {
+            _ = try NSRegularExpression(pattern: pattern, options: [])
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// Get compiled regex (nil if invalid or not using regex)
+    func compiledRegex() -> NSRegularExpression? {
+        guard useRegex, let pattern = regexPattern, !pattern.isEmpty else { return nil }
+        return try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
     }
 
     /// Generate cache key for search results
@@ -183,7 +205,8 @@ struct SearchFilters: Equatable {
         let dateStr = dateRange.map { "\($0.0.timeIntervalSince1970)-\($0.1.timeIntervalSince1970)" } ?? "nil"
         let domainStr = senderDomain ?? "nil"
         let wordRangeStr = wordCountRange.map { "\($0.min)-\($0.max)" } ?? "nil"
-        return "\(query)|\(categoriesStr)|\(minPriStr)|\(maxPriStr)|\(dateStr)|\(unreadOnly)|\(hasAttachments)|\(domainStr)|\(senderIsVIP)|\(hasActionItems)|\(wordRangeStr)"
+        let regexStr = useRegex ? (regexPattern ?? "nil") : "noregex"
+        return "\(query)|\(categoriesStr)|\(minPriStr)|\(maxPriStr)|\(dateStr)|\(unreadOnly)|\(hasAttachments)|\(domainStr)|\(senderIsVIP)|\(hasActionItems)|\(wordRangeStr)|\(regexStr)"
     }
 
     static func == (lhs: SearchFilters, rhs: SearchFilters) -> Bool {
@@ -197,7 +220,9 @@ struct SearchFilters: Equatable {
         lhs.senderIsVIP == rhs.senderIsVIP &&
         lhs.hasActionItems == rhs.hasActionItems &&
         lhs.wordCountRange?.min == rhs.wordCountRange?.min &&
-        lhs.wordCountRange?.max == rhs.wordCountRange?.max
+        lhs.wordCountRange?.max == rhs.wordCountRange?.max &&
+        lhs.useRegex == rhs.useRegex &&
+        lhs.regexPattern == rhs.regexPattern
     }
 
     // Quick filter presets
@@ -222,5 +247,68 @@ struct SearchFilters: Equatable {
         filters.senderIsVIP = true
         filters.presetName = "From VIPs"
         return filters
+    }
+}
+
+// MARK: - Regex Presets
+
+/// Common regex patterns for email search
+enum RegexPreset: String, CaseIterable {
+    case emailAddress = "Email Addresses"
+    case phoneNumber = "Phone Numbers"
+    case url = "URLs"
+    case dollarAmount = "Dollar Amounts"
+    case date = "Dates"
+    case trackingNumber = "Tracking Numbers"
+    case orderNumber = "Order Numbers"
+
+    var pattern: String {
+        switch self {
+        case .emailAddress:
+            return #"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"#
+        case .phoneNumber:
+            return #"(\+?1?[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}"#
+        case .url:
+            return #"https?://[^\s<>\"{}|\\^`\[\]]+"#
+        case .dollarAmount:
+            return #"\$[\d,]+\.?\d{0,2}"#
+        case .date:
+            return #"\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\w+ \d{1,2},? \d{4}"#
+        case .trackingNumber:
+            return #"(?:1Z[A-Z0-9]{16}|[0-9]{12,22}|\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4})"#
+        case .orderNumber:
+            return #"(?:order|#|confirmation)\s*(?:number|#|:)?\s*([A-Z0-9-]{6,})"#
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .emailAddress:
+            return "Find email addresses (name@domain.com)"
+        case .phoneNumber:
+            return "Find phone numbers (various formats)"
+        case .url:
+            return "Find web URLs (http/https)"
+        case .dollarAmount:
+            return "Find dollar amounts ($X.XX)"
+        case .date:
+            return "Find dates (MM/DD/YYYY, Month Day, Year)"
+        case .trackingNumber:
+            return "Find shipping tracking numbers"
+        case .orderNumber:
+            return "Find order/confirmation numbers"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .emailAddress: return "envelope"
+        case .phoneNumber: return "phone"
+        case .url: return "link"
+        case .dollarAmount: return "dollarsign.circle"
+        case .date: return "calendar"
+        case .trackingNumber: return "shippingbox"
+        case .orderNumber: return "number"
+        }
     }
 }

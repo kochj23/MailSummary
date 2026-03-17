@@ -5,6 +5,8 @@
 //  Fast multi-field email search with caching and filtering
 //  Created by Jordan Koch on 2026-01-23
 //
+//  OPTIMIZED: Proper LRU cache eviction
+//
 
 import Foundation
 
@@ -14,8 +16,20 @@ class SearchFilterManager: ObservableObject {
     @Published var results: [SearchResult] = []
     @Published var isSearching = false
 
-    private var searchCache: [String: [SearchResult]] = [:]
+    // OPTIMIZED: LRU cache with access timestamps
+    private var searchCache: [String: CachedSearchResult] = [:]
     private let maxCacheSize = 20
+
+    /// Cached search result with timestamp for LRU eviction
+    private struct CachedSearchResult {
+        let results: [SearchResult]
+        var lastAccessed: Date
+
+        init(results: [SearchResult]) {
+            self.results = results
+            self.lastAccessed = Date()
+        }
+    }
 
     // MARK: - Search
 
@@ -30,11 +44,15 @@ class SearchFilterManager: ObservableObject {
         isSearching = true
 
         Task {
-            // Check cache first
+            // Check cache first (LRU: update access time on hit)
             let cacheKey = filters.cacheKey()
-            if let cached = searchCache[cacheKey] {
+            if var cached = searchCache[cacheKey] {
+                #if DEBUG
                 print("🔍 Cache hit for search: \(cacheKey.prefix(50))...")
-                results = cached
+                #endif
+                cached.lastAccessed = Date()
+                searchCache[cacheKey] = cached
+                results = cached.results
                 isSearching = false
                 return
             }
@@ -100,30 +118,56 @@ class SearchFilterManager: ObservableObject {
                     }
                 }
 
-                // Text search with field scoring
-                if !query.isEmpty {
+                // Text search with field scoring (supports plain text and regex)
+                let regex = filters.compiledRegex()
+                let hasQuery = !query.isEmpty || regex != nil
+
+                if hasQuery {
                     var score = 0.0
                     var matchedText = ""
                     var matchedFields: Set<String> = []
 
-                    // Check subject (highest priority)
-                    if email.subject.lowercased().contains(query) {
-                        score = 1.0
-                        matchedText = email.subject
-                        matchedFields.insert("subject")
-                    }
-                    // Check sender (medium priority)
-                    else if email.sender.lowercased().contains(query) ||
-                            email.senderEmail.lowercased().contains(query) {
-                        score = 0.7
-                        matchedText = email.sender
-                        matchedFields.insert("sender")
-                    }
-                    // Check body (lowest priority)
-                    else if let body = email.body, body.lowercased().contains(query) {
-                        score = 0.5
-                        matchedText = extractSnippet(from: body, query: query)
-                        matchedFields.insert("body")
+                    if let regex = regex {
+                        // Regex search
+                        let subjectMatches = regex.numberOfMatches(in: email.subject, range: NSRange(email.subject.startIndex..., in: email.subject))
+                        let senderMatches = regex.numberOfMatches(in: email.sender, range: NSRange(email.sender.startIndex..., in: email.sender)) +
+                                           regex.numberOfMatches(in: email.senderEmail, range: NSRange(email.senderEmail.startIndex..., in: email.senderEmail))
+                        let bodyMatches = email.body.map { regex.numberOfMatches(in: $0, range: NSRange($0.startIndex..., in: $0)) } ?? 0
+
+                        if subjectMatches > 0 {
+                            score = 1.0
+                            matchedText = extractRegexMatch(from: email.subject, regex: regex) ?? email.subject
+                            matchedFields.insert("subject")
+                        } else if senderMatches > 0 {
+                            score = 0.7
+                            matchedText = extractRegexMatch(from: email.senderEmail, regex: regex) ?? email.sender
+                            matchedFields.insert("sender")
+                        } else if bodyMatches > 0, let body = email.body {
+                            score = 0.5
+                            matchedText = extractRegexMatch(from: body, regex: regex) ?? String(body.prefix(100))
+                            matchedFields.insert("body")
+                        }
+                    } else {
+                        // Standard text search (case-insensitive contains)
+                        // Check subject (highest priority)
+                        if email.subject.lowercased().contains(query) {
+                            score = 1.0
+                            matchedText = email.subject
+                            matchedFields.insert("subject")
+                        }
+                        // Check sender (medium priority)
+                        else if email.sender.lowercased().contains(query) ||
+                                email.senderEmail.lowercased().contains(query) {
+                            score = 0.7
+                            matchedText = email.sender
+                            matchedFields.insert("sender")
+                        }
+                        // Check body (lowest priority)
+                        else if let body = email.body, body.lowercased().contains(query) {
+                            score = 0.5
+                            matchedText = extractSnippet(from: body, query: query)
+                            matchedFields.insert("body")
+                        }
                     }
 
                     // Only include if text matched
@@ -152,14 +196,23 @@ class SearchFilterManager: ObservableObject {
             matched.sort { $0.relevanceScore > $1.relevanceScore }
 
             let duration = Date().timeIntervalSince(startTime) * 1000
+            #if DEBUG
             print("🔍 Search completed in \(Int(duration))ms: \(matched.count) results")
+            #endif
 
-            // Cache results
-            searchCache[cacheKey] = matched
+            // Cache results with LRU eviction
+            searchCache[cacheKey] = CachedSearchResult(results: matched)
+
+            // LRU eviction: remove oldest entries when exceeding max size
             if searchCache.count > maxCacheSize {
-                // Simple cache eviction: clear all
-                searchCache.removeAll()
-                print("🗑️ Search cache cleared (exceeded \(maxCacheSize) entries)")
+                let sortedByAccess = searchCache.sorted { $0.value.lastAccessed < $1.value.lastAccessed }
+                let keysToRemove = sortedByAccess.prefix(searchCache.count - maxCacheSize).map { $0.key }
+                for key in keysToRemove {
+                    searchCache.removeValue(forKey: key)
+                }
+                #if DEBUG
+                print("🗑️ LRU cache eviction: removed \(keysToRemove.count) oldest entries")
+                #endif
             }
 
             results = matched
@@ -185,17 +238,59 @@ class SearchFilterManager: ObservableObject {
         return start > 0 ? "..." + snippet : snippet
     }
 
+    /// Extract first regex match with surrounding context
+    private func extractRegexMatch(from text: String, regex: NSRegularExpression) -> String? {
+        guard let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) else {
+            return nil
+        }
+
+        guard let range = Range(match.range, in: text) else {
+            return nil
+        }
+
+        let matchedString = String(text[range])
+        let lowerBound = text.distance(from: text.startIndex, to: range.lowerBound)
+        let upperBound = text.distance(from: text.startIndex, to: range.upperBound)
+
+        let start = max(0, lowerBound - 30)
+        let end = min(text.count, upperBound + 30)
+
+        let prefix = start > 0 ? "..." : ""
+        let suffix = end < text.count ? "..." : ""
+
+        let contextStart = text.index(text.startIndex, offsetBy: start)
+        let contextEnd = text.index(text.startIndex, offsetBy: end)
+
+        return prefix + String(text[contextStart..<contextEnd]) + suffix
+    }
+
+    /// Apply a regex preset
+    func applyRegexPreset(_ preset: RegexPreset) {
+        filters.useRegex = true
+        filters.regexPattern = preset.pattern
+    }
+
+    /// Clear regex search
+    func clearRegex() {
+        filters.useRegex = false
+        filters.regexPattern = nil
+    }
+
     /// Clear all filters and results
     func clearFilters() {
         filters = SearchFilters()
         results = []
+        #if DEBUG
         print("🧹 Search filters cleared")
+        #endif
     }
 
     /// Invalidate search cache (call when email list changes)
     func invalidateCache() {
         searchCache.removeAll()
+        #if DEBUG
         print("🗑️ Search cache invalidated")
+        #endif
     }
 
     /// Apply quick filter preset

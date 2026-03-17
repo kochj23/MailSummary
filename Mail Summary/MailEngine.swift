@@ -13,7 +13,11 @@ import UserNotifications
 
 @MainActor
 class MailEngine: ObservableObject {
-    @Published var emails: [Email] = []
+    @Published var emails: [Email] = [] {
+        didSet {
+            rebuildEmailCache()
+        }
+    }
     @Published var categories: [CategorySummary] = []
     @Published var stats: MailboxStats = MailboxStats(totalEmails: 0, unreadEmails: 0, todayEmails: 0, highPriorityEmails: 0, actionsCount: 0)
     @Published var aiSummary: String = ""
@@ -38,9 +42,13 @@ class MailEngine: ObservableObject {
     @Published var notifyHighPriority: Bool = true
     @Published var lastScanTime: Date?
 
-    // PERFORMANCE: Parallel processing configuration
-    private let aiParallelBatchSize = 20  // Process 20 emails concurrently
-    private let aiBatchDelayMs: UInt64 = 100_000_000  // 100ms delay between batches (prevents overwhelming AI backend)
+    // PERFORMANCE: Email lookup cache - O(1) instead of O(n) for ID lookups
+    private var emailsByID: [Int: Email] = [:]
+    private var emailIndexByID: [Int: Int] = [:]
+
+    // PERFORMANCE: Parallel processing configuration (reduced from 20 to 8 to avoid overwhelming AI backend)
+    private let aiParallelBatchSize = 8  // Process 8 emails concurrently
+    private let aiBatchDelayMs: UInt64 = 50_000_000  // 50ms delay between batches
 
     private let parser = MailParser()
     private let categorizer = AICategorizationEngine()
@@ -66,6 +74,34 @@ class MailEngine: ObservableObject {
         if autoScanEnabled {
             startAutoScan()
         }
+    }
+
+    // MARK: - Email Cache Management (PERFORMANCE OPTIMIZATION)
+
+    /// Rebuild email lookup cache - called automatically when emails array changes
+    private func rebuildEmailCache() {
+        emailsByID.removeAll(keepingCapacity: true)
+        emailIndexByID.removeAll(keepingCapacity: true)
+
+        for (index, email) in emails.enumerated() {
+            emailsByID[email.id] = email
+            emailIndexByID[email.id] = index
+        }
+    }
+
+    /// O(1) email lookup by ID
+    func email(byID id: Int) -> Email? {
+        return emailsByID[id]
+    }
+
+    /// O(1) email index lookup by ID
+    func emailIndex(byID id: Int) -> Int? {
+        return emailIndexByID[id]
+    }
+
+    /// O(1) check if email exists
+    func emailExists(_ id: Int) -> Bool {
+        return emailsByID[id] != nil
     }
 
     deinit {
@@ -183,9 +219,9 @@ class MailEngine: ObservableObject {
         }
     }
 
-    /// Load email body on-demand
+    /// Load email body on-demand - OPTIMIZED with O(1) lookup
     func loadEmailBody(emailID: Int) async {
-        guard let index = emails.firstIndex(where: { $0.id == emailID }) else { return }
+        guard let index = emailIndexByID[emailID] else { return }
 
         // Already loaded or loading
         if emails[index].body != nil || emails[index].isLoadingBody {
@@ -201,13 +237,18 @@ class MailEngine: ObservableObject {
         let messageId = emails[index].messageId
         if let body = await parser.loadEmailBody(messageId: messageId) {
             await MainActor.run {
-                self.emails[index].body = body
-                self.emails[index].isLoadingBody = false
+                // Re-check index in case array changed
+                if let idx = self.emailIndexByID[emailID] {
+                    self.emails[idx].body = body
+                    self.emails[idx].isLoadingBody = false
+                }
             }
         } else {
             await MainActor.run {
-                self.emails[index].body = "[Unable to load email body]"
-                self.emails[index].isLoadingBody = false
+                if let idx = self.emailIndexByID[emailID] {
+                    self.emails[idx].body = "[Unable to load email body]"
+                    self.emails[idx].isLoadingBody = false
+                }
             }
         }
     }
@@ -223,25 +264,25 @@ class MailEngine: ObservableObject {
             case .success:
                 lastActionResult = ("✅ \(action.displayName) completed", true)
 
-                // Update UI state based on action
+                // Update UI state based on action - OPTIMIZED with O(1) lookup
                 switch action {
                 case .delete, .archive:
                     deleteEmail(emailID: email.id)
 
                 case .markRead:
-                    if let index = emails.firstIndex(where: { $0.id == email.id }) {
+                    if let index = emailIndexByID[email.id] {
                         emails[index].isRead = true
                     }
                     updateStats()
 
                 case .markUnread:
-                    if let index = emails.firstIndex(where: { $0.id == email.id }) {
+                    if let index = emailIndexByID[email.id] {
                         emails[index].isRead = false
                     }
                     updateStats()
 
                 case .toggleRead:
-                    if let index = emails.firstIndex(where: { $0.id == email.id }) {
+                    if let index = emailIndexByID[email.id] {
                         emails[index].isRead.toggle()
                     }
                     updateStats()
@@ -274,39 +315,39 @@ class MailEngine: ObservableObject {
 
     // MARK: - Snooze & Reminders
 
-    /// Mark email as snoozed
+    /// Mark email as snoozed - OPTIMIZED with O(1) lookup
     func markEmailAsSnoozed(emailId: Int, until: Date) {
-        if let index = emails.firstIndex(where: { $0.id == emailId }) {
+        if let index = emailIndexByID[emailId] {
             emails[index].isSnoozed = true
             emails[index].snoozeUntil = until
         }
         updateSnoozedList()
     }
 
-    /// Unsnooze an email
+    /// Unsnooze an email - OPTIMIZED with O(1) lookup
     func unsnoozeEmail(emailId: Int) {
-        if let index = emails.firstIndex(where: { $0.id == emailId }) {
+        if let index = emailIndexByID[emailId] {
             emails[index].isSnoozed = false
             emails[index].snoozeUntil = nil
         }
         updateSnoozedList()
     }
 
-    /// Mark email as having a reminder
+    /// Mark email as having a reminder - OPTIMIZED with O(1) lookup
     func markEmailAsHasReminder(emailId: Int, remindAt: Date) {
-        if let index = emails.firstIndex(where: { $0.id == emailId }) {
+        if let index = emailIndexByID[emailId] {
             emails[index].hasReminder = true
             emails[index].reminderDate = remindAt
         }
         updateActiveReminders()
     }
 
-    /// Check for expired snoozes
+    /// Check for expired snoozes - uses messageId lookup (still O(n) but rare)
     private func checkExpiredSnoozes() {
         let expired = snoozeManager.getExpiredSnoozed()
 
         for snoozed in expired {
-            // Find email and unsnooze
+            // Find email by messageId and unsnooze (can't use cache as we need messageId lookup)
             if let index = emails.firstIndex(where: { $0.messageId == snoozed.messageId }) {
                 emails[index].isSnoozed = false
                 emails[index].snoozeUntil = nil
@@ -342,7 +383,7 @@ class MailEngine: ObservableObject {
     }
 
     func markAsRead(emailID: Int) {
-        if let index = emails.firstIndex(where: { $0.id == emailID }) {
+        if let index = emailIndexByID[emailID] {
             emails[index].isRead = true
             updateStats()
         }
@@ -362,25 +403,27 @@ class MailEngine: ObservableObject {
 
     // MARK: - Bulk Operations
 
-    /// Bulk delete multiple emails
+    /// Bulk delete multiple emails - OPTIMIZED with O(1) lookups
     func bulkDelete(emailIDs: [Int]) async -> (success: Int, failed: Int) {
         var successCount = 0
         var failedCount = 0
 
+        // Pre-fetch emails using O(1) dictionary lookup
+        let emailIDSet = Set(emailIDs)
+        let emailsToProcess = emailIDs.compactMap { emailsByID[$0] }
+
         // Process in batches of 20 for better performance
         let batchSize = 20
-        let batches = stride(from: 0, to: emailIDs.count, by: batchSize).map {
-            Array(emailIDs[$0..<min($0 + batchSize, emailIDs.count)])
+        let batches = stride(from: 0, to: emailsToProcess.count, by: batchSize).map {
+            Array(emailsToProcess[$0..<min($0 + batchSize, emailsToProcess.count)])
         }
 
         for batch in batches {
             await withTaskGroup(of: Bool.self) { group in
-                for emailID in batch {
-                    if let email = emails.first(where: { $0.id == emailID }) {
-                        group.addTask {
-                            let result = await self.actionManager.performAction(.delete, on: email)
-                            return result.isSuccess
-                        }
+                for email in batch {
+                    group.addTask {
+                        let result = await self.actionManager.performAction(.delete, on: email)
+                        return result.isSuccess
                     }
                 }
 
@@ -394,9 +437,9 @@ class MailEngine: ObservableObject {
             }
         }
 
-        // Remove from local list
+        // Remove from local list using Set for O(1) contains check
         await MainActor.run {
-            emails.removeAll { emailIDs.contains($0.id) }
+            emails.removeAll { emailIDSet.contains($0.id) }
             updateCategories()
             updateStats()
             lastActionResult = ("🗑 Deleted \(successCount) emails", true)
@@ -405,24 +448,26 @@ class MailEngine: ObservableObject {
         return (successCount, failedCount)
     }
 
-    /// Bulk archive multiple emails
+    /// Bulk archive multiple emails - OPTIMIZED with O(1) lookups
     func bulkArchive(emailIDs: [Int]) async -> (success: Int, failed: Int) {
         var successCount = 0
         var failedCount = 0
 
+        // Pre-fetch emails using O(1) dictionary lookup
+        let emailIDSet = Set(emailIDs)
+        let emailsToProcess = emailIDs.compactMap { emailsByID[$0] }
+
         let batchSize = 20
-        let batches = stride(from: 0, to: emailIDs.count, by: batchSize).map {
-            Array(emailIDs[$0..<min($0 + batchSize, emailIDs.count)])
+        let batches = stride(from: 0, to: emailsToProcess.count, by: batchSize).map {
+            Array(emailsToProcess[$0..<min($0 + batchSize, emailsToProcess.count)])
         }
 
         for batch in batches {
             await withTaskGroup(of: Bool.self) { group in
-                for emailID in batch {
-                    if let email = emails.first(where: { $0.id == emailID }) {
-                        group.addTask {
-                            let result = await self.actionManager.performAction(.archive, on: email)
-                            return result.isSuccess
-                        }
+                for email in batch {
+                    group.addTask {
+                        let result = await self.actionManager.performAction(.archive, on: email)
+                        return result.isSuccess
                     }
                 }
 
@@ -436,9 +481,9 @@ class MailEngine: ObservableObject {
             }
         }
 
-        // Remove from local list
+        // Remove from local list using Set for O(1) contains check
         await MainActor.run {
-            emails.removeAll { emailIDs.contains($0.id) }
+            emails.removeAll { emailIDSet.contains($0.id) }
             updateCategories()
             updateStats()
             lastActionResult = ("📦 Archived \(successCount) emails", true)
@@ -447,24 +492,25 @@ class MailEngine: ObservableObject {
         return (successCount, failedCount)
     }
 
-    /// Bulk mark emails as read
+    /// Bulk mark emails as read - OPTIMIZED with O(1) lookups
     func bulkMarkRead(emailIDs: [Int]) async -> (success: Int, failed: Int) {
         var successCount = 0
         var failedCount = 0
 
+        // Pre-fetch emails using O(1) dictionary lookup
+        let emailsToProcess = emailIDs.compactMap { emailsByID[$0] }
+
         let batchSize = 20
-        let batches = stride(from: 0, to: emailIDs.count, by: batchSize).map {
-            Array(emailIDs[$0..<min($0 + batchSize, emailIDs.count)])
+        let batches = stride(from: 0, to: emailsToProcess.count, by: batchSize).map {
+            Array(emailsToProcess[$0..<min($0 + batchSize, emailsToProcess.count)])
         }
 
         for batch in batches {
             await withTaskGroup(of: Bool.self) { group in
-                for emailID in batch {
-                    if let email = emails.first(where: { $0.id == emailID }) {
-                        group.addTask {
-                            let result = await self.actionManager.performAction(.markRead, on: email)
-                            return result.isSuccess
-                        }
+                for email in batch {
+                    group.addTask {
+                        let result = await self.actionManager.performAction(.markRead, on: email)
+                        return result.isSuccess
                     }
                 }
 
@@ -478,10 +524,10 @@ class MailEngine: ObservableObject {
             }
         }
 
-        // Update local state
+        // Update local state using O(1) index lookup
         await MainActor.run {
             for emailID in emailIDs {
-                if let index = emails.firstIndex(where: { $0.id == emailID }) {
+                if let index = emailIndexByID[emailID] {
                     emails[index].isRead = true
                 }
             }
@@ -492,24 +538,25 @@ class MailEngine: ObservableObject {
         return (successCount, failedCount)
     }
 
-    /// Bulk mark emails as unread
+    /// Bulk mark emails as unread - OPTIMIZED with O(1) lookups
     func bulkMarkUnread(emailIDs: [Int]) async -> (success: Int, failed: Int) {
         var successCount = 0
         var failedCount = 0
 
+        // Pre-fetch emails using O(1) dictionary lookup
+        let emailsToProcess = emailIDs.compactMap { emailsByID[$0] }
+
         let batchSize = 20
-        let batches = stride(from: 0, to: emailIDs.count, by: batchSize).map {
-            Array(emailIDs[$0..<min($0 + batchSize, emailIDs.count)])
+        let batches = stride(from: 0, to: emailsToProcess.count, by: batchSize).map {
+            Array(emailsToProcess[$0..<min($0 + batchSize, emailsToProcess.count)])
         }
 
         for batch in batches {
             await withTaskGroup(of: Bool.self) { group in
-                for emailID in batch {
-                    if let email = emails.first(where: { $0.id == emailID }) {
-                        group.addTask {
-                            let result = await self.actionManager.performAction(.markUnread, on: email)
-                            return result.isSuccess
-                        }
+                for email in batch {
+                    group.addTask {
+                        let result = await self.actionManager.performAction(.markUnread, on: email)
+                        return result.isSuccess
                     }
                 }
 
@@ -523,10 +570,10 @@ class MailEngine: ObservableObject {
             }
         }
 
-        // Update local state
+        // Update local state using O(1) index lookup
         await MainActor.run {
             for emailID in emailIDs {
-                if let index = emails.firstIndex(where: { $0.id == emailID }) {
+                if let index = emailIndexByID[emailID] {
                     emails[index].isRead = false
                 }
             }
@@ -537,24 +584,26 @@ class MailEngine: ObservableObject {
         return (successCount, failedCount)
     }
 
-    /// Bulk move emails to a mailbox
+    /// Bulk move emails to a mailbox - OPTIMIZED with O(1) lookups
     func bulkMove(emailIDs: [Int], to mailbox: String) async -> (success: Int, failed: Int) {
         var successCount = 0
         var failedCount = 0
 
+        // Pre-fetch emails using O(1) dictionary lookup
+        let emailIDSet = Set(emailIDs)
+        let emailsToProcess = emailIDs.compactMap { emailsByID[$0] }
+
         let batchSize = 20
-        let batches = stride(from: 0, to: emailIDs.count, by: batchSize).map {
-            Array(emailIDs[$0..<min($0 + batchSize, emailIDs.count)])
+        let batches = stride(from: 0, to: emailsToProcess.count, by: batchSize).map {
+            Array(emailsToProcess[$0..<min($0 + batchSize, emailsToProcess.count)])
         }
 
         for batch in batches {
             await withTaskGroup(of: Bool.self) { group in
-                for emailID in batch {
-                    if let email = emails.first(where: { $0.id == emailID }) {
-                        group.addTask {
-                            let result = await self.actionManager.performAction(.move(mailbox: mailbox), on: email)
-                            return result.isSuccess
-                        }
+                for email in batch {
+                    group.addTask {
+                        let result = await self.actionManager.performAction(.move(mailbox: mailbox), on: email)
+                        return result.isSuccess
                     }
                 }
 
@@ -568,9 +617,9 @@ class MailEngine: ObservableObject {
             }
         }
 
-        // Remove from local list
+        // Remove from local list using Set for O(1) contains check
         await MainActor.run {
-            emails.removeAll { emailIDs.contains($0.id) }
+            emails.removeAll { emailIDSet.contains($0.id) }
             updateCategories()
             updateStats()
             lastActionResult = ("📁 Moved \(successCount) emails to \(mailbox)", true)
@@ -593,14 +642,18 @@ class MailEngine: ObservableObject {
             }
         }
 
+        #if DEBUG
         print("✅ Auto-scan started: every \(Int(autoScanInterval/60)) minutes")
+        #endif
     }
 
     /// Stop automatic scanning
     func stopAutoScan() {
         autoScanTimer?.invalidate()
         autoScanTimer = nil
+        #if DEBUG
         print("🛑 Auto-scan stopped")
+        #endif
     }
 
     /// Perform auto-scan if conditions are met
@@ -608,7 +661,9 @@ class MailEngine: ObservableObject {
         // Rate limiting: Don't scan more than once per minute
         if let lastScan = lastScanTime,
            Date().timeIntervalSince(lastScan) < 60 {
+            #if DEBUG
             print("⏱️ Auto-scan skipped: Too soon since last scan")
+            #endif
             return
         }
 
@@ -618,11 +673,15 @@ class MailEngine: ObservableObject {
         }
 
         guard isMailRunning else {
+            #if DEBUG
             print("⚠️ Auto-scan skipped: Mail.app not running")
+            #endif
             return
         }
 
+        #if DEBUG
         print("🔄 Auto-scan triggered")
+        #endif
         lastScanTime = Date()
         saveSettings()
 

@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct Email: Identifiable, Codable {
+struct Email: Identifiable, Codable, Hashable, Equatable {
     let id: Int
     let messageId: String  // Mail.app message ID for fetching body on-demand
     let subject: String
@@ -32,6 +32,16 @@ struct Email: Identifiable, Codable {
 
     // NEW: Search highlighting
     var matchedFields: Set<String> = []  // "subject", "sender", "body"
+
+    // MARK: - Hashable & Equatable (based on id)
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    static func == (lhs: Email, rhs: Email) -> Bool {
+        lhs.id == rhs.id
+    }
 
     enum EmailCategory: String, Codable, CaseIterable {
         case bills = "Bills"
@@ -74,7 +84,7 @@ struct Email: Identifiable, Codable {
     }
 }
 
-struct EmailAction: Identifiable, Codable {
+struct EmailAction: Identifiable, Codable, Hashable, Equatable {
     let id: UUID
     let type: ActionType
     let text: String

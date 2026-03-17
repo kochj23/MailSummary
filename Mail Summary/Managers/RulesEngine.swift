@@ -263,35 +263,65 @@ class RulesEngine: ObservableObject {
             modifiedEmail.priority = min(max(value, 1), 10)  // Clamp to 1-10
 
         case .delete:
-            // Mark for deletion (actual deletion handled by MailEngine)
-            // For now, just set a flag or track in separate array
-            // TODO: Integrate with EmailActionManager for actual deletion
-            break
+            // Delete via EmailActionManager
+            let result = await EmailActionManager.shared.performAction(.delete, on: modifiedEmail)
+            #if DEBUG
+            if result.isSuccess {
+                print("[RulesEngine] Email deleted: \(modifiedEmail.subject)")
+            } else {
+                print("[RulesEngine] Delete failed")
+            }
+            #endif
 
         case .archive:
-            // Mark for archiving (handled by MailEngine)
-            // TODO: Integrate with EmailActionManager for actual archiving
-            break
+            // Archive via EmailActionManager
+            let archiveResult = await EmailActionManager.shared.performAction(.archive, on: modifiedEmail)
+            #if DEBUG
+            if archiveResult.isSuccess {
+                print("[RulesEngine] Email archived: \(modifiedEmail.subject)")
+            } else {
+                print("[RulesEngine] Archive failed")
+            }
+            #endif
 
         case .markRead:
             modifiedEmail.isRead = true
-            // TODO: Sync with Mail.app via EmailActionManager
+            let markReadResult = await EmailActionManager.shared.performAction(.markRead, on: modifiedEmail)
+            #if DEBUG
+            if markReadResult.isSuccess {
+                print("[RulesEngine] Email marked as read")
+            }
+            #endif
 
         case .markUnread:
             modifiedEmail.isRead = false
-            // TODO: Sync with Mail.app via EmailActionManager
+            let markUnreadResult = await EmailActionManager.shared.performAction(.markUnread, on: modifiedEmail)
+            #if DEBUG
+            if markUnreadResult.isSuccess {
+                print("[RulesEngine] Email marked as unread")
+            }
+            #endif
 
         case .move(let mailbox):
-            // TODO: Integrate with EmailActionManager for moving
-            break
+            let moveResult = await EmailActionManager.shared.performAction(.move(mailbox: mailbox), on: modifiedEmail)
+            #if DEBUG
+            if moveResult.isSuccess {
+                print("[RulesEngine] Email moved to: \(mailbox)")
+            } else {
+                print("[RulesEngine] Move failed")
+            }
+            #endif
 
         case .snooze(let date):
             modifiedEmail.isSnoozed = true
             modifiedEmail.snoozeUntil = date
-            // TODO: Integrate with SnoozeReminderManager
+            SnoozeReminderManager.shared.snoozeEmail(emailId: modifiedEmail.id, messageId: modifiedEmail.messageId, subject: modifiedEmail.subject, sender: modifiedEmail.senderEmail, until: date)
+            #if DEBUG
+            print("[RulesEngine] Email snoozed until: \(date)")
+            #endif
 
-        case .addTag(let tag):
-            // TODO: Implement tagging system (not yet in Email model)
+        case .addTag(_):
+            // Tags not yet implemented in Email model - skip silently
             break
 
         case .notify(let message):

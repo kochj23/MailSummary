@@ -137,7 +137,7 @@ struct ContentView: View {
                     .frame(width: 10, height: 10)
                     .shadow(color: AIBackendManager.shared.activeBackend != nil ? Color.green : Color.red, radius: 3)
 
-                Text(AIBackendManager.shared.activeBackend?.rawValue ?? "No AI")
+                Text(AIBackendManager.shared.activeBackend.rawValue)
                     .font(.system(size: 12, weight: .semibold, design: .monospaced))
                     .foregroundColor(AIBackendManager.shared.activeBackend != nil ? .green : .red)
             }
