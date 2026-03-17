@@ -53,6 +53,7 @@
 		AC104859C1C512B5D514892A /* DuplicateDetectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0152B027881CD8CC658733EE /* DuplicateDetectionView.swift */; };
 		AC740CFB69A01095331E277B /* ActionToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49B2BFE19D2F52B646D4695D /* ActionToast.swift */; };
 		BC73EF3379395B5637C94061 /* ReplyTemplateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 062431D24F0C1C8899DE5601 /* ReplyTemplateManager.swift */; };
+		C047C5C7C0DCF85AF599FCAC /* NovaAPIServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 280A262A075CFC914EA8B6BD /* NovaAPIServer.swift */; };
 		C3A1E66474BFB6B82B8B163D /* MailParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B5F01F99DDE901D775B975C /* MailParser.swift */; };
 		C3C284A0F456B324B1E1991E /* EmailListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24DC016858C657594309DC45 /* EmailListView.swift */; };
 		C83923BE6BB7500BA2614378 /* AnalyticsDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1DD008CF20CD7C6C66AF5AE /* AnalyticsDashboardView.swift */; };
@@ -113,6 +114,7 @@
 		1BB556637BF01E058023B7BA /* MailEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MailEngine.swift; sourceTree = "<group>"; };
 		24DC016858C657594309DC45 /* EmailListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmailListView.swift; sourceTree = "<group>"; };
 		263CAF28ED896646BAA43F66 /* IntegrationsSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = IntegrationsSettingsView.swift; sourceTree = "<group>"; };
+		280A262A075CFC914EA8B6BD /* NovaAPIServer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NovaAPIServer.swift; sourceTree = "<absolute>"; };
 		306D7946D1D8F2F57B799048 /* EmailActionManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = EmailActionManager.swift; path = Managers/EmailActionManager.swift; sourceTree = "<group>"; };
 		307BC3DC6D0B0869BA8BE76E /* AnalysisUnified.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AnalysisUnified.swift; path = AICapabilities/AnalysisUnified.swift; sourceTree = "<group>"; };
 		32195E8DCD6CDA683905DCBC /* AIBackendManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AIBackendManager.swift; sourceTree = "<group>"; };
@@ -351,6 +353,7 @@
 				DA9F475993F9240A32ED3616 /* Views */,
 				027FC85100C1CAC20525D3E1 /* AICapabilities */,
 				17DDC97BEC9D99FE2B55CA7A /* Themes */,
+				280A262A075CFC914EA8B6BD /* NovaAPIServer.swift */,
 			);
 			name = "Mail Summary";
 			path = "Mail Summary";
@@ -527,6 +530,7 @@
 				259A41BB1159F0722FEF41B5 /* AIBackendManager+Generation.swift in Sources */,
 				04FA09E8F3589BC984B020C8 /* AIBackendManager+Enhanced.swift in Sources */,
 				09B1B7F9BFA7424CF409E44B /* AIBackendStatusMenu.swift in Sources */,
+				C047C5C7C0DCF85AF599FCAC /* NovaAPIServer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
