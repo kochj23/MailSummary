@@ -114,7 +114,7 @@
 		1BB556637BF01E058023B7BA /* MailEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MailEngine.swift; sourceTree = "<group>"; };
 		24DC016858C657594309DC45 /* EmailListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmailListView.swift; sourceTree = "<group>"; };
 		263CAF28ED896646BAA43F66 /* IntegrationsSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = IntegrationsSettingsView.swift; sourceTree = "<group>"; };
-		280A262A075CFC914EA8B6BD /* NovaAPIServer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NovaAPIServer.swift; sourceTree = "<absolute>"; };
+		280A262A075CFC914EA8B6BD /* NovaAPIServer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "/Volumes/Data/xcode/Mail Summary/Mail Summary/NovaAPIServer.swift"; sourceTree = "<absolute>"; };
 		306D7946D1D8F2F57B799048 /* EmailActionManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = EmailActionManager.swift; path = Managers/EmailActionManager.swift; sourceTree = "<group>"; };
 		307BC3DC6D0B0869BA8BE76E /* AnalysisUnified.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AnalysisUnified.swift; path = AICapabilities/AnalysisUnified.swift; sourceTree = "<group>"; };
 		32195E8DCD6CDA683905DCBC /* AIBackendManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AIBackendManager.swift; sourceTree = "<group>"; };
