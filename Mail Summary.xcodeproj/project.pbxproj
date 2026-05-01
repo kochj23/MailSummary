@@ -73,6 +73,14 @@
 		WIDGETBF005 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = WIDGETFR005 /* WidgetKit.framework */; };
 		WIDGETBF006 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = WIDGETFR006 /* SwiftUI.framework */; };
 		WIDGETBF007 /* Mail Summary WidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = WIDGETPR001 /* Mail Summary WidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		TESTBF0001 /* EmailModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TESTFR0001 /* EmailModelsTests.swift */; };
+		TESTBF0002 /* MailParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TESTFR0002 /* MailParserTests.swift */; };
+		TESTBF0003 /* ThreadGroupingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TESTFR0003 /* ThreadGroupingTests.swift */; };
+		TESTBF0004 /* PIIRedactionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TESTFR0004 /* PIIRedactionTests.swift */; };
+		TESTBF0005 /* SecurityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TESTFR0005 /* SecurityTests.swift */; };
+		TESTBF0006 /* SearchFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TESTFR0006 /* SearchFilterTests.swift */; };
+		TESTBF0007 /* AnalyticsModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TESTFR0007 /* AnalyticsModelsTests.swift */; };
+		TESTBF0008 /* IntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TESTFR0008 /* IntegrationTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -82,6 +90,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = WIDGETNT001;
 			remoteInfo = "Mail Summary WidgetExtension";
+		};
+		TESTCIP001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B76F3691B3D5FDB1E10594A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9E34AE32C50334DCD041FF99;
+			remoteInfo = "Mail Summary";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -175,6 +190,16 @@
 		WIDGETFR007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		WIDGETFR008 /* Mail_Summary_Widget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Mail_Summary_Widget.entitlements; sourceTree = "<group>"; };
 		WIDGETPR001 /* Mail Summary WidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Mail Summary WidgetExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		TESTFR0001 /* EmailModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailModelsTests.swift; sourceTree = "<group>"; };
+		TESTFR0002 /* MailParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MailParserTests.swift; sourceTree = "<group>"; };
+		TESTFR0003 /* ThreadGroupingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadGroupingTests.swift; sourceTree = "<group>"; };
+		TESTFR0004 /* PIIRedactionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PIIRedactionTests.swift; sourceTree = "<group>"; };
+		TESTFR0005 /* SecurityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityTests.swift; sourceTree = "<group>"; };
+		TESTFR0006 /* SearchFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchFilterTests.swift; sourceTree = "<group>"; };
+		TESTFR0007 /* AnalyticsModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsModelsTests.swift; sourceTree = "<group>"; };
+		TESTFR0008 /* IntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrationTests.swift; sourceTree = "<group>"; };
+		TESTPR0001 /* Mail SummaryTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Mail SummaryTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		MAINPR0001 /* Mail Summary.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Mail Summary.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -192,6 +217,13 @@
 			files = (
 				WIDGETBF005 /* WidgetKit.framework in Frameworks */,
 				WIDGETBF006 /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		TESTFWK001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,6 +250,7 @@
 				EA14C9AC346E864A0A42F067 /* Mail Summary */,
 				WIDGETGR001 /* Mail Summary Widget */,
 				76815965CA860A12760FC1E0 /* AIBackend */,
+				TESTGR0001 /* Mail SummaryTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -291,7 +324,9 @@
 		D15E597A9B9E19405C3CBB80 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				MAINPR0001 /* Mail Summary.app */,
 				WIDGETPR001 /* Mail Summary WidgetExtension.appex */,
+				TESTPR0001 /* Mail SummaryTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -373,6 +408,22 @@
 			path = "Mail Summary Widget";
 			sourceTree = "<group>";
 		};
+		TESTGR0001 /* Mail SummaryTests */ = {
+			isa = PBXGroup;
+			children = (
+				TESTFR0001 /* EmailModelsTests.swift */,
+				TESTFR0002 /* MailParserTests.swift */,
+				TESTFR0003 /* ThreadGroupingTests.swift */,
+				TESTFR0004 /* PIIRedactionTests.swift */,
+				TESTFR0005 /* SecurityTests.swift */,
+				TESTFR0006 /* SearchFilterTests.swift */,
+				TESTFR0007 /* AnalyticsModelsTests.swift */,
+				TESTFR0008 /* IntegrationTests.swift */,
+			);
+			name = "Mail SummaryTests";
+			path = "Mail SummaryTests";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -392,6 +443,7 @@
 			);
 			name = "Mail Summary";
 			productName = "Mail Summary";
+			productReference = MAINPR0001 /* Mail Summary.app */;
 			productType = "com.apple.product-type.application";
 		};
 		WIDGETNT001 /* Mail Summary WidgetExtension */ = {
@@ -411,6 +463,24 @@
 			productReference = WIDGETPR001 /* Mail Summary WidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		TESTNT0001 /* Mail SummaryTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = TESTBCL001 /* Build configuration list for PBXNativeTarget "Mail SummaryTests" */;
+			buildPhases = (
+				TESTSRC001 /* Sources */,
+				TESTFWK001 /* Frameworks */,
+				TESTRES001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				TESTDEP001 /* PBXTargetDependency */,
+			);
+			name = "Mail SummaryTests";
+			productName = "Mail SummaryTests";
+			productReference = TESTPR0001 /* Mail SummaryTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -426,6 +496,10 @@
 					};
 					WIDGETNT001 = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					TESTNT0001 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 9E34AE32C50334DCD041FF99;
 					};
 				};
 			};
@@ -446,6 +520,7 @@
 			targets = (
 				9E34AE32C50334DCD041FF99 /* Mail Summary */,
 				WIDGETNT001 /* Mail Summary WidgetExtension */,
+				TESTNT0001 /* Mail SummaryTests */,
 			);
 		};
 /* End PBXProject section */
@@ -464,6 +539,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				WIDGETBF004 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		TESTRES001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -544,6 +626,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		TESTSRC001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				TESTBF0001 /* EmailModelsTests.swift in Sources */,
+				TESTBF0002 /* MailParserTests.swift in Sources */,
+				TESTBF0003 /* ThreadGroupingTests.swift in Sources */,
+				TESTBF0004 /* PIIRedactionTests.swift in Sources */,
+				TESTBF0005 /* SecurityTests.swift in Sources */,
+				TESTBF0006 /* SearchFilterTests.swift in Sources */,
+				TESTBF0007 /* AnalyticsModelsTests.swift in Sources */,
+				TESTBF0008 /* IntegrationTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -551,6 +648,11 @@
 			isa = PBXTargetDependency;
 			target = WIDGETNT001 /* Mail Summary WidgetExtension */;
 			targetProxy = WIDGETCIP01 /* PBXContainerItemProxy */;
+		};
+		TESTDEP001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9E34AE32C50334DCD041FF99 /* Mail Summary */;
+			targetProxy = TESTCIP001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -778,6 +880,46 @@
 			};
 			name = Release;
 		};
+		TESTBC0001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jordankoch.MailSummaryTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mail Summary.app/Contents/MacOS/Mail Summary";
+			};
+			name = Debug;
+		};
+		TESTBC0002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jordankoch.MailSummaryTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mail Summary.app/Contents/MacOS/Mail Summary";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -807,6 +949,15 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		TESTBCL001 /* Build configuration list for PBXNativeTarget "Mail SummaryTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				TESTBC0001 /* Debug */,
+				TESTBC0002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};

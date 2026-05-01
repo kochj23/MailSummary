@@ -12,6 +12,85 @@
 ![Automation](https://img.shields.io/badge/Automation-90%25-brightgreen)
 ![Ethics](https://img.shields.io/badge/Ethics-Protected-green)
 ![Widget](https://img.shields.io/badge/Widget-WidgetKit-cyan)
+![Tests](https://img.shields.io/badge/Tests-164%20Passing-brightgreen)
+
+---
+
+## Architecture
+
+```mermaid
+graph TD
+    subgraph UI ["SwiftUI Layer"]
+        A[MailSummaryApp] --> B[ContentView]
+        A --> C[MenuBarView]
+        A --> D[Settings]
+        B --> E[EmailListView]
+        B --> F[EmailDetailView]
+        B --> G[ThreadedEmailListView]
+        B --> H[SearchView]
+        B --> I[InsightsDashboardView]
+        F --> J[HTMLContentView]
+    end
+
+    subgraph Core ["Core Engine"]
+        K[MailEngine] --> L[MailParser]
+        K --> M[AICategorizationEngine]
+        K --> N[SearchFilterManager]
+        K --> O[RulesEngine]
+        L -->|AppleScript| P[Mail.app]
+    end
+
+    subgraph AI ["AI Backend"]
+        M --> Q[AIBackendManager]
+        Q --> R[Ollama]
+        Q --> S[TinyLLM / TinyChat]
+        Q --> T[OpenWebUI]
+        Q --> U[MLX]
+        Q --> V[Cloud: OpenAI / Azure / AWS]
+    end
+
+    subgraph Managers ["Business Logic"]
+        W[EmailActionManager] -->|AppleScript| P
+        X[ThreadManager]
+        Y[PIIRedactionManager]
+        Z[SnoozeReminderManager]
+        AA[SenderIntelligenceManager]
+        AB[AnalyticsManager]
+        AC[ExportManager]
+    end
+
+    subgraph Security ["Security"]
+        AD[EmailSecurityGuard]
+        AE[EthicalAIGuardian]
+    end
+
+    subgraph Integration ["Integration"]
+        AF[NovaAPIServer :37439]
+        AG[WidgetKit Extension]
+    end
+
+    A --> K
+    B --> W
+    K --> X
+    K --> Z
+```
+
+## Test Suite
+
+164 tests across 8 test classes covering unit, functional, security, and integration tests.
+
+| Test Class | Tests | Coverage |
+|------------|-------|----------|
+| EmailModelsTests | 15 | Email struct, EmailCategory, EmailAction, Codable, Hashable/Equatable |
+| MailParserTests | 16 | Header extraction, sender parsing, metadata parsing, date formats |
+| ThreadGroupingTests | 22 | Subject normalization, thread creation, fuzzy matching, timespan |
+| PIIRedactionTests | 25 | SSN, credit card, phone, email, address, name detection and redaction |
+| SecurityTests | 15 | Credential scanning, XSS prevention, CSP, phishing/scam patterns |
+| SearchFilterTests | 30 | Filter activation, regex validation, cache keys, presets, action types |
+| AnalyticsModelsTests | 23 | DayStats, SenderStats, Trends, Recommendations, Predictions |
+| IntegrationTests | 18 | Thread grouping workflow, search pipeline, snooze lifecycle, priority |
+
+Run tests: `xcodebuild test -scheme "Mail Summary" -destination "platform=macOS,arch=arm64"`
 
 ---
 
