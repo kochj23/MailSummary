@@ -14,3 +14,7 @@ xcuserdata/
 
 # macOS
 .DS_Store
+
+# Swift Package Manager pins (do not commit)
+Package.resolved
+**/xcshareddata/swiftpm/Package.resolved

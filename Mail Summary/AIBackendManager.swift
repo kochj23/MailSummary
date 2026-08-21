@@ -617,6 +617,11 @@ struct AIBackendSelectionView: View {
                                 .fill(Color.gray.opacity(0.1))
                         )
                     }
+
+                    // Multi-Model Load Balancer (OpenRouter frontier + Nova Gateway
+                    // + all-local balancing). Additive — the existing Ollama/OpenAI
+                    // backends above keep working unchanged.
+                    LLMLoadBalancerSettingsView()
                 }
                 .padding()
             }
