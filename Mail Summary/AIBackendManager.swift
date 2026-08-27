@@ -54,7 +54,7 @@ class AIBackendManager: ObservableObject {
     @Published var activeBackend: AIBackend = .ollama
     @Published var lastRefreshDate: Date?
 
-    // Cloud AI Services - API Keys (WARNING: Use Keychain in production!)
+    // Cloud AI Services - API Keys (persisted in the Keychain via KeychainStore, never UserDefaults)
     @Published var openAIAPIKey: String = ""
     @Published var googleCloudAPIKey: String = ""
     @Published var azureAPIKey: String = ""
@@ -240,9 +240,59 @@ class AIBackendManager: ObservableObject {
         }
     }
 
+    // MARK: - Keychain Storage (cloud credentials)
+
+    /// Keychain service namespace for this legacy manager's cloud credentials.
+    private static let keychainService = "com.jkoch.aistudio.aibackend"
+
+    /// Cloud credential keys that must live in the Keychain, never UserDefaults.
+    /// These strings double as the legacy UserDefaults keys (migrated on first launch)
+    /// and the Keychain account names.
+    private static let secretKeys = [
+        "AIBackend_OpenAI_Key",
+        "AIBackend_GoogleCloud_Key",
+        "AIBackend_Azure_Key",
+        "AIBackend_Azure_Endpoint",
+        "AIBackend_AWS_AccessKey",
+        "AIBackend_AWS_SecretKey",
+        "AIBackend_IBM_Key",
+        "AIBackend_IBM_URL"
+    ]
+
+    private static func keychain(_ account: String) -> KeychainStore {
+        KeychainStore(service: keychainService, account: account)
+    }
+
+    private static func secretGet(_ account: String) -> String {
+        keychain(account).get() ?? ""
+    }
+
+    private static func secretSet(_ account: String, _ value: String) {
+        let store = keychain(account)
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            store.delete()
+        } else {
+            store.set(trimmed)
+        }
+    }
+
+    /// One-time migration: move any plaintext cloud credentials out of
+    /// UserDefaults into the Keychain, then delete the UserDefaults copies.
+    private func migrateSecretsFromUserDefaults() {
+        let defaults = UserDefaults.standard
+        for key in Self.secretKeys {
+            if let value = defaults.string(forKey: key), !value.isEmpty {
+                Self.secretSet(key, value)
+            }
+            defaults.removeObject(forKey: key)
+        }
+    }
+
     // MARK: - Initialization
 
     private init() {
+        migrateSecretsFromUserDefaults()
         loadConfiguration()
         Task {
             await refreshAllBackends()
@@ -445,16 +495,16 @@ class AIBackendManager: ObservableObject {
         swarmUIServerURL = defaults.string(forKey: "AIBackend_SwarmUIURL") ?? "http://localhost:7801"
         selectedOllamaModel = defaults.string(forKey: "AIBackend_OllamaModel") ?? "mistral:latest"
 
-        // Cloud API Keys (WARNING: These should be in Keychain in production!)
-        openAIAPIKey = defaults.string(forKey: "AIBackend_OpenAI_Key") ?? ""
-        googleCloudAPIKey = defaults.string(forKey: "AIBackend_GoogleCloud_Key") ?? ""
-        azureAPIKey = defaults.string(forKey: "AIBackend_Azure_Key") ?? ""
-        azureEndpoint = defaults.string(forKey: "AIBackend_Azure_Endpoint") ?? ""
-        awsAccessKey = defaults.string(forKey: "AIBackend_AWS_AccessKey") ?? ""
-        awsSecretKey = defaults.string(forKey: "AIBackend_AWS_SecretKey") ?? ""
+        // Cloud API Keys are stored in the Keychain, never UserDefaults.
+        openAIAPIKey = Self.secretGet("AIBackend_OpenAI_Key")
+        googleCloudAPIKey = Self.secretGet("AIBackend_GoogleCloud_Key")
+        azureAPIKey = Self.secretGet("AIBackend_Azure_Key")
+        azureEndpoint = Self.secretGet("AIBackend_Azure_Endpoint")
+        awsAccessKey = Self.secretGet("AIBackend_AWS_AccessKey")
+        awsSecretKey = Self.secretGet("AIBackend_AWS_SecretKey")
         awsRegion = defaults.string(forKey: "AIBackend_AWS_Region") ?? "us-east-1"
-        ibmWatsonAPIKey = defaults.string(forKey: "AIBackend_IBM_Key") ?? ""
-        ibmWatsonURL = defaults.string(forKey: "AIBackend_IBM_URL") ?? ""
+        ibmWatsonAPIKey = Self.secretGet("AIBackend_IBM_Key")
+        ibmWatsonURL = Self.secretGet("AIBackend_IBM_URL")
 
         if let backendRaw = defaults.string(forKey: "AIBackend_Active"),
            let backend = AIBackend(rawValue: backendRaw) {
@@ -474,16 +524,16 @@ class AIBackendManager: ObservableObject {
         defaults.set(swarmUIServerURL, forKey: "AIBackend_SwarmUIURL")
         defaults.set(selectedOllamaModel, forKey: "AIBackend_OllamaModel")
 
-        // Cloud API Keys (WARNING: These should be in Keychain in production!)
-        defaults.set(openAIAPIKey, forKey: "AIBackend_OpenAI_Key")
-        defaults.set(googleCloudAPIKey, forKey: "AIBackend_GoogleCloud_Key")
-        defaults.set(azureAPIKey, forKey: "AIBackend_Azure_Key")
-        defaults.set(azureEndpoint, forKey: "AIBackend_Azure_Endpoint")
-        defaults.set(awsAccessKey, forKey: "AIBackend_AWS_AccessKey")
-        defaults.set(awsSecretKey, forKey: "AIBackend_AWS_SecretKey")
+        // Cloud API Keys are stored in the Keychain, never UserDefaults.
+        Self.secretSet("AIBackend_OpenAI_Key", openAIAPIKey)
+        Self.secretSet("AIBackend_GoogleCloud_Key", googleCloudAPIKey)
+        Self.secretSet("AIBackend_Azure_Key", azureAPIKey)
+        Self.secretSet("AIBackend_Azure_Endpoint", azureEndpoint)
+        Self.secretSet("AIBackend_AWS_AccessKey", awsAccessKey)
+        Self.secretSet("AIBackend_AWS_SecretKey", awsSecretKey)
         defaults.set(awsRegion, forKey: "AIBackend_AWS_Region")
-        defaults.set(ibmWatsonAPIKey, forKey: "AIBackend_IBM_Key")
-        defaults.set(ibmWatsonURL, forKey: "AIBackend_IBM_URL")
+        Self.secretSet("AIBackend_IBM_Key", ibmWatsonAPIKey)
+        Self.secretSet("AIBackend_IBM_URL", ibmWatsonURL)
 
         defaults.set(activeBackend.rawValue, forKey: "AIBackend_Active")
     }
