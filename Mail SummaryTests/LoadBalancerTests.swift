@@ -2,216 +2,94 @@
 //  LoadBalancerTests.swift
 //  Mail SummaryTests
 //
-//  Deterministic (no-network) tests for model discovery parsing, pool
-//  composition, and the load-balancer selection policies.
+//  The old in-app multi-model load balancer (ModelRegistry / LoadBalancer / LLMBackendType) was replaced by
+//  NovaAIKit's Auto failover. These deterministic (no-network) tests keep the same coverage against the kit:
+//  backend set, failover order, local-endpoint spreading, health gating and keyed-backend gating.
 //
 //  Copyright © 2026 Jordan Koch. All rights reserved.
 //
 
 import XCTest
+import NovaAIKit
 @testable import Mail_Summary
 
 final class LoadBalancerTests: XCTestCase {
 
-    // MARK: - parseOllamaTags
-
-    func testParseOllamaTagsMapsModels() {
-        let json = """
-        {"models": [
-            {"name": "mistral:latest", "size": 123},
-            {"name": "llama3.2:3b"},
-            {"size": 5}
-        ]}
-        """
-        let models = ModelRegistry.parseOllamaTags(Data(json.utf8))
-        XCTAssertEqual(models.count, 2)
-        XCTAssertEqual(models.map { $0.modelName }, ["mistral:latest", "llama3.2:3b"])
-        XCTAssertTrue(models.allSatisfy { $0.backend == .ollama })
-        XCTAssertEqual(models[0].id, "ollama|mistral:latest")
-        XCTAssertEqual(models[0].endpoint, "http://localhost:11434/api/chat")
+    private func engine(_ settings: NovaAISettings, keys: NovaAIMemoryKeyStore = NovaAIMemoryKeyStore(),
+                        health: NovaAIHealth? = nil) -> NovaAIEngine {
+        let cfg = NovaAIConfiguration(appID: AppAI.appID, appName: AppAI.appName)
+        return NovaAIEngine(configuration: cfg, settings: settings, keys: NovaAIKeys(configuration: cfg, store: keys),
+                            health: health, sleep: { _ in })
     }
 
-    func testParseOllamaTagsEmptyAndGarbage() {
-        XCTAssertTrue(ModelRegistry.parseOllamaTags(Data("nonsense".utf8)).isEmpty)
-        XCTAssertTrue(ModelRegistry.parseOllamaTags(Data("{}".utf8)).isEmpty)
-        XCTAssertTrue(ModelRegistry.parseOllamaTags(Data(#"{"models": []}"#.utf8)).isEmpty)
-        XCTAssertTrue(ModelRegistry.parseOllamaTags(Data()).isEmpty)
+    // MARK: - Backend types
+
+    func testNovaGatewayBackendType() {
+        XCTAssertEqual(NovaAIBackend.novaGateway.rawValue, "novagateway")
+        XCTAssertEqual(NovaAIBackend.novaGateway.defaultURL, "http://127.0.0.1:18792")
+        XCTAssertFalse(NovaAIBackend.novaGateway.symbolName.isEmpty)
+        XCTAssertEqual(NovaAIBackend.allCases.count, 9)
     }
 
-    // MARK: - parseMLXModels
-
-    func testParseMLXModelsFromHubDirs() {
-        let dirs = [
-            "models--mlx-community--Llama-3.2-3B-Instruct-4bit",
-            "models--meta-llama--Llama-3.1-8B",          // not MLX → excluded
-            "models--mlx-community--Qwen2.5-7B-4bit",
-            "blobs",                                       // not a model dir → excluded
-            "models--"                                     // empty repo → excluded
-        ]
-        let models = ModelRegistry.parseMLXModels(hubDirectoryNames: dirs)
-        XCTAssertEqual(models.count, 2)
-        XCTAssertEqual(models.map { $0.modelName },
-                       ["mlx-community/Llama-3.2-3B-Instruct-4bit", "mlx-community/Qwen2.5-7B-4bit"])
-        XCTAssertTrue(models.allSatisfy { $0.backend == .mlx })
-        XCTAssertEqual(models[0].displayName, "Llama-3.2-3B-Instruct-4bit")
+    func testLegacyBackendNamesMap() {
+        XCTAssertEqual(NovaAIBackend(legacyName: "Ollama"), .ollama)
+        XCTAssertEqual(NovaAIBackend(legacyName: "OpenAI"), .openAI)
     }
 
-    func testParseMLXModelsEmpty() {
-        XCTAssertTrue(ModelRegistry.parseMLXModels(hubDirectoryNames: []).isEmpty)
-        XCTAssertTrue(ModelRegistry.parseMLXModels(hubDirectoryNames: ["random", "stuff"]).isEmpty)
+    // MARK: - Failover order (replaces the old FailoverPlanner chain)
+
+    func testAutoChainIsLocalFirstThenCloud() {
+        let chain = engine(NovaAISettings()).chain()
+        XCTAssertEqual(chain.first, .ollama)
+        XCTAssertEqual(Array(chain.suffix(2)), [.openRouter, .openAI])
+        XCTAssertLessThan(chain.firstIndex(of: .novaGateway)!, chain.firstIndex(of: .openRouter)!)
     }
 
-    // MARK: - frontier + nova mapping
-
-    func testFrontierModelsMapping() {
-        let frontier = ModelRegistry.frontierModels(from: ["openai/gpt-4o", "anthropic/claude-sonnet-4.5", ""])
-        XCTAssertEqual(frontier.count, 2)
-        XCTAssertTrue(frontier.allSatisfy { $0.backend == .openRouter })
-        XCTAssertEqual(frontier[0].endpoint, OpenRouterProvider.chatCompletionsURL)
+    func testExplicitBackendIsTheOnlyCandidate() {
+        XCTAssertEqual(engine(NovaAISettings(backend: .tinyChat)).chain(), [.tinyChat])
     }
 
-    func testNovaGatewayModel() {
-        let nova = ModelRegistry.novaGatewayModel()
-        XCTAssertEqual(nova.backend, .novaGateway)
-        XCTAssertEqual(nova.endpoint, "http://127.0.0.1:18792/v1/chat/completions")
+    // MARK: - Pool composition (all-local balancing → extra Ollama endpoints)
+
+    func testExtraOllamaEndpointsJoinThePool() {
+        var s = NovaAISettings(backend: .ollama)
+        s.extraOllamaEndpoints = [NovaAIEndpoint(url: "http://gpu-a.example.com:11434", model: "llama3.2:3b"),
+                                  NovaAIEndpoint(url: "http://gpu-b.example.com:11434", model: "")]
+        let c = engine(s).candidates()
+        XCTAssertEqual(c.count, 3)
+        XCTAssertEqual(c[1].model, "llama3.2:3b")
+        XCTAssertEqual(c[2].model, s.model(for: .ollama), "an endpoint without a model uses the configured one")
     }
 
-    // MARK: - Pool composition (toggles)
-
-    private func samplePool() -> (local: [DiscoveredModel], frontier: [DiscoveredModel], nova: DiscoveredModel) {
-        let ollama = [DiscoveredModel(modelName: "mistral:latest", backend: .ollama, endpoint: "e")]
-        let mlx = [DiscoveredModel(modelName: "mlx-community/Qwen", backend: .mlx, endpoint: "")]
-        let frontier = ModelRegistry.frontierModels(from: ["openai/gpt-4o"])
-        let nova = ModelRegistry.novaGatewayModel()
-        return (ollama + mlx, frontier, nova)
+    func testDuplicateEndpointsAreDeduplicated() {
+        var s = NovaAISettings(backend: .ollama)
+        s.extraOllamaEndpoints = [NovaAIEndpoint(url: s.url(for: .ollama), model: "")]
+        XCTAssertEqual(engine(s).candidates().count, 1)
     }
 
-    func testAssemblePoolLocalOnly() {
-        let s = samplePool()
-        let pool = ModelRegistry.assemblePool(
-            ollama: [s.local[0]], mlx: [s.local[1]], frontier: s.frontier, novaGateway: s.nova,
-            useAllLocalModels: true, enableAllFrontierModels: false, useNovaGateway: false)
-        XCTAssertEqual(pool.count, 2)
-        XCTAssertTrue(pool.allSatisfy { $0.backend == .ollama || $0.backend == .mlx })
-    }
+    // MARK: - Frontier models (OpenRouter) gated by a Keychain key
 
-    func testAssemblePoolFrontierOnly() {
-        let s = samplePool()
-        let pool = ModelRegistry.assemblePool(
-            ollama: [s.local[0]], mlx: [s.local[1]], frontier: s.frontier, novaGateway: s.nova,
-            useAllLocalModels: false, enableAllFrontierModels: true, useNovaGateway: false)
-        XCTAssertEqual(pool.count, 1)
-        XCTAssertEqual(pool[0].backend, .openRouter)
-    }
-
-    func testAssemblePoolBothPlusNova() {
-        let s = samplePool()
-        let pool = ModelRegistry.assemblePool(
-            ollama: [s.local[0]], mlx: [s.local[1]], frontier: s.frontier, novaGateway: s.nova,
-            useAllLocalModels: true, enableAllFrontierModels: true, useNovaGateway: true)
-        XCTAssertEqual(pool.count, 4)
-        XCTAssertTrue(pool.contains { $0.backend == .novaGateway })
-    }
-
-    func testAssemblePoolNovaAbsentWhenToggleOff() {
-        let s = samplePool()
-        let pool = ModelRegistry.assemblePool(
-            ollama: [s.local[0]], mlx: [s.local[1]], frontier: s.frontier, novaGateway: s.nova,
-            useAllLocalModels: true, enableAllFrontierModels: false, useNovaGateway: false)
-        XCTAssertFalse(pool.contains { $0.backend == .novaGateway })
-    }
-
-    func testAssemblePoolAllOff() {
-        let s = samplePool()
-        let pool = ModelRegistry.assemblePool(
-            ollama: [s.local[0]], mlx: [s.local[1]], frontier: s.frontier, novaGateway: s.nova,
-            useAllLocalModels: false, enableAllFrontierModels: false, useNovaGateway: false)
-        XCTAssertTrue(pool.isEmpty)
-    }
-
-    func testAssemblePoolDeduplicates() {
-        let dup = DiscoveredModel(modelName: "mistral:latest", backend: .ollama, endpoint: "e")
-        let pool = ModelRegistry.assemblePool(
-            ollama: [dup, dup], mlx: [], frontier: [], novaGateway: nil,
-            useAllLocalModels: true, enableAllFrontierModels: false, useNovaGateway: false)
-        XCTAssertEqual(pool.count, 1)
-    }
-
-    // MARK: - Round-robin policy
-
-    func testRoundRobinCyclesAndWraps() {
-        let pool = ["a", "b", "c"].map { DiscoveredModel(modelName: $0, backend: .ollama, endpoint: "e") }
-        let health = Dictionary(uniqueKeysWithValues: pool.map { ($0.id, true) })
-        let lb = LoadBalancer()
-
-        var picks: [String] = []
-        for _ in 0..<7 {
-            picks.append(lb.next(pool: pool, health: health, policy: .roundRobin)!.modelName)
-        }
-        XCTAssertEqual(picks, ["a", "b", "c", "a", "b", "c", "a"])
-    }
-
-    // MARK: - Least-busy policy
-
-    func testLeastBusyPicksLowestInFlight() {
-        let pool = ["a", "b", "c"].map { DiscoveredModel(modelName: $0, backend: .ollama, endpoint: "e") }
-        let health = Dictionary(uniqueKeysWithValues: pool.map { ($0.id, true) })
-        let lb = LoadBalancer()
-
-        // a: 2 in-flight, b: 0, c: 1 → b is least busy.
-        lb.checkOut(pool[0].id); lb.checkOut(pool[0].id)
-        lb.checkOut(pool[2].id)
-        XCTAssertEqual(lb.next(pool: pool, health: health, policy: .leastBusy)?.modelName, "b")
-    }
-
-    func testLeastBusyTieBreaksByPoolOrder() {
-        let pool = ["a", "b", "c"].map { DiscoveredModel(modelName: $0, backend: .ollama, endpoint: "e") }
-        let health = Dictionary(uniqueKeysWithValues: pool.map { ($0.id, true) })
-        let lb = LoadBalancer()
-        // All zero in-flight → first in pool order wins, deterministically.
-        XCTAssertEqual(lb.next(pool: pool, health: health, policy: .leastBusy)?.modelName, "a")
-    }
-
-    func testCheckInNeverGoesNegative() {
-        let lb = LoadBalancer()
-        lb.checkIn("x")
-        XCTAssertEqual(lb.inFlight["x"], 0)
-        lb.checkOut("x"); lb.checkIn("x"); lb.checkIn("x")
-        XCTAssertEqual(lb.inFlight["x"], 0)
+    func testFrontierModelsNeedAKey() {
+        let keys = NovaAIMemoryKeyStore()
+        XCTAssertFalse(engine(NovaAISettings(), keys: keys).candidates().contains { $0.backend == .openRouter })
+        let cfg = NovaAIConfiguration(appID: AppAI.appID, appName: AppAI.appName)
+        _ = keys.write("placeholder", service: cfg.keychainService(for: .openRouter), account: NovaAIConfiguration.keychainAccount)
+        XCTAssertTrue(engine(NovaAISettings(), keys: keys).candidates().contains { $0.backend == .openRouter })
     }
 
     // MARK: - Health gating
 
-    func testHealthMapExcludesUnhealthy() {
-        let pool = ["a", "b", "c"].map { DiscoveredModel(modelName: $0, backend: .ollama, endpoint: "e") }
-        let lb = LoadBalancer()
-        // b marked unhealthy; a & c absent-from-map default to healthy.
-        let health = [pool[1].id: false]
-        let picked = (0..<4).map { _ in lb.next(pool: pool, health: health, policy: .roundRobin)!.modelName }
-        XCTAssertFalse(picked.contains("b"))
-        XCTAssertEqual(Set(picked), ["a", "c"])
-    }
-
-    func testAllUnhealthyReturnsNil() {
-        let pool = ["a", "b"].map { DiscoveredModel(modelName: $0, backend: .ollama, endpoint: "e") }
-        let health = Dictionary(uniqueKeysWithValues: pool.map { ($0.id, false) })
-        let lb = LoadBalancer()
-        XCTAssertNil(lb.next(pool: pool, health: health, policy: .roundRobin))
-        XCTAssertNil(lb.next(pool: pool, health: health, policy: .leastBusy))
-    }
-
-    func testEmptyPoolReturnsNil() {
-        let lb = LoadBalancer()
-        XCTAssertNil(lb.next(pool: [], health: [:], policy: .roundRobin))
-    }
-
-    // MARK: - New backend type
-
-    func testNovaGatewayBackendType() {
-        XCTAssertEqual(LLMBackendType.novaGateway.rawValue, "novagateway")
-        XCTAssertEqual(LLMBackendType.novaGateway.displayName, "Nova Gateway")
-        XCTAssertEqual(LLMBackendType.novaGateway.defaultURL, "http://127.0.0.1:18792")
-        XCTAssertFalse(LLMBackendType.novaGateway.icon.isEmpty)
-        XCTAssertEqual(LLMBackendType.allCases.count, 8)
+    func testHealthMarksExpire() {
+        final class Clock: @unchecked Sendable { var now = Date(timeIntervalSince1970: 0) }
+        let clock = Clock()
+        let health = NovaAIHealth(ttl: 60, now: { clock.now })
+        health.mark("http://a.example.com", ok: false)
+        XCTAssertEqual(health.status("http://a.example.com"), false)
+        XCTAssertNil(health.status("http://b.example.com"))
+        clock.now = clock.now.addingTimeInterval(120)
+        XCTAssertNil(health.status("http://a.example.com"), "a stale failure no longer excludes the endpoint")
+        health.mark("http://a.example.com", ok: true)
+        health.reset()
+        XCTAssertNil(health.status("http://a.example.com"))
     }
 }

@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import NovaAIKit
 
 @MainActor
 class ReplyTemplateManager: ObservableObject {
@@ -22,7 +23,7 @@ class ReplyTemplateManager: ObservableObject {
 
     private let userDefaults = UserDefaults.standard
     private let templatesKey = "MailSummary_ReplyTemplates"
-    private let ai = AIBackendManager.shared
+    private var ai: NovaAI { AppAI.shared }
 
     // MARK: - Initialization
 
@@ -90,7 +91,7 @@ class ReplyTemplateManager: ObservableObject {
         body = substituteVariables(in: body, for: email)
 
         // AI enhancement if enabled
-        if template.useAI, ai.activeBackend != nil {
+        if template.useAI, ai.isEnabled {
             body = await enhanceTemplateWithAI(body: body, email: email)
         }
 
@@ -151,26 +152,37 @@ class ReplyTemplateManager: ObservableObject {
         Customized Reply (maintain professional tone, keep it concise):
         """
 
-        do {
-            let enhanced = try await ai.generate(
-                prompt: prompt,
-                systemPrompt: "You are an email assistant helping customize reply templates. Keep replies professional and concise.",
-                temperature: 0.7,
-                maxTokens: 400
-            )
+        let request = NovaAIRequest(
+            prompt: prompt,
+            system: "You are an email assistant helping customize reply templates. Keep replies professional and concise.",
+            temperature: 0.7,
+            maxTokens: 400
+        )
+        // Built-in: the template with its variables filled in.
+        return await ai.text(request, validate: { try Self.validateReply($0) }, fallback: { body }).value
+    }
 
-            return enhanced.trimmingCharacters(in: .whitespacesAndNewlines)
-        } catch {
-            print("❌ AI template enhancement failed: \(error)")
-            return body
-        }
+    /// Reply text: non-empty, plain, at most 2000 characters, and no unfilled {{variables}}.
+    nonisolated static func validateReply(_ text: String) throws -> String {
+        let plain = NovaAIText.plain(try NovaAI.nonEmpty(text), max: 2000)
+        guard !plain.isEmpty else { throw NovaAIValidationError("empty reply") }
+        guard !plain.contains("{{") else { throw NovaAIValidationError("leave no {{placeholders}} in the reply") }
+        return plain
+    }
+
+    /// Built-in smart reply: a short, polite acknowledgement addressed to the sender's first name.
+    nonisolated static func basicSmartReply(sender: String, subject: String) -> String {
+        let firstName = sender.split(separator: " ").first.map(String.init) ?? sender
+        let greeting = firstName.isEmpty ? "Hi," : "Hi \(firstName),"
+        return "\(greeting)\n\nThanks for your email about \"\(subject)\". I've received it and will follow up shortly.\n\nBest regards"
     }
 
     /// Generate smart reply using AI
     func generateSmartReply(for email: Email) async -> String? {
-        guard ai.activeBackend != nil, let body = email.body else {
+        guard let body = email.body else {
             return nil
         }
+        let fallback = Self.basicSmartReply(sender: email.sender, subject: email.subject)
 
         let prompt = """
         Generate a professional, concise reply to this email.
@@ -189,19 +201,13 @@ class ReplyTemplateManager: ObservableObject {
         Reply:
         """
 
-        do {
-            let reply = try await ai.generate(
-                prompt: prompt,
-                systemPrompt: "You are a professional email assistant. Generate concise, professional replies.",
-                temperature: 0.7,
-                maxTokens: 300
-            )
-
-            return reply.trimmingCharacters(in: .whitespacesAndNewlines)
-        } catch {
-            print("❌ AI smart reply failed: \(error)")
-            return nil
-        }
+        let request = NovaAIRequest(
+            prompt: prompt,
+            system: "You are a professional email assistant. Generate concise, professional replies.",
+            temperature: 0.7,
+            maxTokens: 300
+        )
+        return await ai.text(request, validate: { try Self.validateReply($0) }, fallback: { fallback }).value
     }
 
     // MARK: - Persistence

@@ -8,6 +8,7 @@
 //
 
 import XCTest
+import NovaAIKit
 @testable import Mail_Summary
 
 final class SecurityTests: XCTestCase {
@@ -51,14 +52,15 @@ final class SecurityTests: XCTestCase {
     // MARK: - Security Architecture Checks (Static)
 
     func testAPIKeyStorageDesign() {
-        // Verify cloud API keys default to empty strings (not hardcoded values)
-        let manager = AIBackendManager.shared
-        // After fresh init with no UserDefaults, keys should be empty
-        // (This verifies the pattern, not the actual values in UserDefaults)
-        XCTAssertTrue(
-            manager.openAIAPIKey.isEmpty || manager.openAIAPIKey.count < 10,
-            "OpenAI API key should be empty or very short (not a real key)"
-        )
+        // API keys live only in the Keychain (NovaAIKit, com.jkoch.mailsummary.<backend>); a fresh in-memory key
+        // store holds nothing, and a stored key is reported as present without exposing its value in settings.
+        let keys = NovaAIKeys(configuration: NovaAIConfiguration(appID: AppAI.appID, appName: AppAI.appName),
+                              store: NovaAIMemoryKeyStore())
+        XCTAssertFalse(keys.hasKey(for: .openAI))
+        XCTAssertTrue(keys.setKey("placeholder-test-value", for: .openAI))
+        XCTAssertTrue(keys.hasKey(for: .openAI))
+        let encoded = String(data: (try? JSONEncoder().encode(NovaAISettings())) ?? Data(), encoding: .utf8) ?? ""
+        XCTAssertFalse(encoded.contains("placeholder-test-value"), "settings (UserDefaults) never contain keys")
     }
 
     // MARK: - HTML Sanitization (Runtime Verification)
@@ -161,7 +163,7 @@ final class SecurityTests: XCTestCase {
     func testAppleScriptInjectionPatterns() {
         // Verify that message ID (integer) is used rather than user-controlled strings
         // EmailActionManager uses messageId (from Mail.app, integer) not user-controlled subject
-        let safePattern = "whose id is \\(messageId)"
+        _ = "whose id is \\(messageId)"  // the safe pattern EmailActionManager uses
         let unsafePattern = "whose subject is"
 
         // Verify our detection works

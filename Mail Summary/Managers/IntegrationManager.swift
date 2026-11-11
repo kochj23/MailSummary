@@ -41,7 +41,7 @@ class IntegrationManager: ObservableObject {
 
     /// Request calendar access
     private func requestCalendarAccess() {
-        eventStore.requestAccess(to: .event) { granted, error in
+        eventStore.requestFullAccessToEvents { granted, error in
             if granted {
                 print("✅ Calendar access granted")
             } else {
@@ -90,7 +90,7 @@ class IntegrationManager: ObservableObject {
 
     /// Request reminders access
     private func requestRemindersAccess() {
-        eventStore.requestAccess(to: .reminder) { granted, error in
+        eventStore.requestFullAccessToReminders { granted, error in
             if granted {
                 print("✅ Reminders access granted")
             } else {
@@ -196,7 +196,7 @@ class IntegrationManager: ObservableObject {
             return false
         }
 
-        var payload: [String: Any] = [
+        let payload: [String: Any] = [
             "event": event.rawValue,
             "timestamp": ISO8601DateFormatter().string(from: Date()),
             "data": data

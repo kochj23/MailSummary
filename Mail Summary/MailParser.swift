@@ -110,12 +110,7 @@ class MailParser {
 
                 // Timeout after 10 seconds per batch (metadata is fast)
                 let timeoutSeconds: TimeInterval = 10
-                var timedOut = false
-                var processCompleted = false
-
-                process.terminationHandler = { _ in
-                    processCompleted = true
-                }
+                // Timed out = terminated by the timeout task below (SIGTERM → .uncaughtSignal).
 
                 do {
                     try process.run()
@@ -123,8 +118,7 @@ class MailParser {
                     // Start timeout timer
                     Task.detached {
                         try? await Task.sleep(nanoseconds: UInt64(timeoutSeconds * 1_000_000_000))
-                        if !processCompleted {
-                            timedOut = true
+                        if process.isRunning {
                             #if DEBUG
                             print("⏱️ Batch timed out after \(timeoutSeconds)s - terminating...")
                             #endif
@@ -134,7 +128,7 @@ class MailParser {
 
                     process.waitUntilExit()
 
-                    if timedOut {
+                    if process.terminationReason == .uncaughtSignal {
                         #if DEBUG
                         print("❌ Batch timed out.")
                         #endif
@@ -199,27 +193,21 @@ class MailParser {
 
                 // Timeout after 5 seconds for single email body
                 let timeoutSeconds: TimeInterval = 5
-                var timedOut = false
-                var processCompleted = false
-
-                process.terminationHandler = { _ in
-                    processCompleted = true
-                }
+                // Timed out = terminated by the timeout task below (SIGTERM → .uncaughtSignal).
 
                 do {
                     try process.run()
 
                     Task.detached {
                         try? await Task.sleep(nanoseconds: UInt64(timeoutSeconds * 1_000_000_000))
-                        if !processCompleted {
-                            timedOut = true
+                        if process.isRunning {
                             process.terminate()
                         }
                     }
 
                     process.waitUntilExit()
 
-                    if timedOut {
+                    if process.terminationReason == .uncaughtSignal {
                         #if DEBUG
                         print("⏱️ Body load timed out")
                         #endif

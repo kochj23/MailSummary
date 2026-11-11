@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import NovaAIKit
 
 struct MenuBarView: View {
     @EnvironmentObject var mailEngine: MailEngine
@@ -16,6 +17,9 @@ struct MenuBarView: View {
             // Header
             Text("📧 Mail Summary")
                 .font(.headline)
+
+            NovaAIStatusIndicator(ai: AppAI.shared)
+                .font(.caption)
 
             Divider()
 
@@ -35,6 +39,10 @@ struct MenuBarView: View {
 
             Button("Scan Now") {
                 mailEngine.scan()
+            }
+
+            SettingsLink {
+                Text("AI Settings…")
             }
 
             Divider()

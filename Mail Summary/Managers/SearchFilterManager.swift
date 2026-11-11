@@ -248,7 +248,6 @@ class SearchFilterManager: ObservableObject {
             return nil
         }
 
-        let matchedString = String(text[range])
         let lowerBound = text.distance(from: text.startIndex, to: range.lowerBound)
         let upperBound = text.distance(from: text.startIndex, to: range.upperBound)
 

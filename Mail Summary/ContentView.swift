@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import NovaAIKit
 
 struct ContentView: View {
     @EnvironmentObject var mailEngine: MailEngine
@@ -130,17 +131,9 @@ struct ContentView: View {
             .keyboardShortcut("f", modifiers: .command)
             .help("Search emails (⌘F)")
 
-            // AI Backend Indicator
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(AIBackendManager.shared.activeBackend != nil ? Color.green : Color.red)
-                    .frame(width: 10, height: 10)
-                    .shadow(color: AIBackendManager.shared.activeBackend != nil ? Color.green : Color.red, radius: 3)
-
-                Text(AIBackendManager.shared.activeBackend.rawValue)
-                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                    .foregroundColor(AIBackendManager.shared.activeBackend != nil ? .green : .red)
-            }
+            // AI status (NovaAIKit): dot + backend/model; click re-checks
+            NovaAIStatusIndicator(ai: AppAI.shared)
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(Color.white.opacity(0.05))
@@ -196,6 +189,14 @@ struct ContentView: View {
                 Text("AI SUMMARY")
                     .font(.headline)
                     .foregroundColor(.white)
+
+                Spacer()
+
+                if !mailEngine.aiSummarySource.isEmpty {
+                    Text(mailEngine.aiSummarySource)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.6))
+                }
             }
 
             Text(mailEngine.aiSummary)

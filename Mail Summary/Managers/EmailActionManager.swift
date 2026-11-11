@@ -215,12 +215,7 @@ class EmailActionManager {
                 process.standardOutput = pipe
                 process.standardError = pipe
 
-                var timedOut = false
-                var processCompleted = false
-
-                process.terminationHandler = { _ in
-                    processCompleted = true
-                }
+                // Timed out = terminated by the timeout task below (SIGTERM → .uncaughtSignal).
 
                 do {
                     try process.run()
@@ -228,8 +223,7 @@ class EmailActionManager {
                     // Start timeout timer
                     Task.detached {
                         try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                        if !processCompleted {
-                            timedOut = true
+                        if process.isRunning {
                             print("⏱️ AppleScript timed out after \(timeout)s - terminating...")
                             process.terminate()
                         }
@@ -237,7 +231,7 @@ class EmailActionManager {
 
                     process.waitUntilExit()
 
-                    if timedOut {
+                    if process.terminationReason == .uncaughtSignal {
                         continuation.resume(returning: "ERROR: Operation timed out")
                         return
                     }

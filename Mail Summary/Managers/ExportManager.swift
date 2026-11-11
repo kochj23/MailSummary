@@ -270,7 +270,7 @@ class ExportManager: ObservableObject {
         dateFormatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss Z"
         let dateString = dateFormatter.string(from: email.dateReceived)
 
-        var eml = """
+        let eml = """
         From: \(email.sender) <\(email.senderEmail)>
         Subject: \(email.subject)
         Date: \(dateString)
@@ -588,9 +588,9 @@ class ExportManager: ObservableObject {
             [
                 "id": template.id.uuidString,
                 "name": template.name,
-                "subject": template.subject,
+                "subject": template.subject as Any,
                 "body": template.body,
-                "category": template.category
+                "category": template.category as Any
             ]
         }
     }

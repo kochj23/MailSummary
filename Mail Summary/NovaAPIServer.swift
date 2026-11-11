@@ -45,7 +45,7 @@ class NovaAPIServer {
     private func route(_ req: NovaRequest) async -> String {
         switch (req.method, req.path) {
         case ("GET", "/api/status"):
-            return json(200, ["status": "running", "app": "MailSummary", "version": "1.0", "port": "\(port)", "uptimeSeconds": Int(Date().timeIntervalSince(startTime))] as [String: Any])
+            return json(200, ["status": "running", "app": "MailSummary", "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown", "port": "\(port)", "uptimeSeconds": Int(Date().timeIntervalSince(startTime))] as [String: Any])
         case ("GET", "/api/ping"):
             return json(200, ["pong": "true"] as [String: Any])
         default:

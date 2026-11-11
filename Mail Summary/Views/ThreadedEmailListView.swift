@@ -122,19 +122,19 @@ struct ThreadedEmailListView: View {
                         onArchiveThread: {
                             Task {
                                 let emailIDs = thread.emails.map { $0.id }
-                                await mailEngine.bulkArchive(emailIDs: emailIDs)
+                                _ = await mailEngine.bulkArchive(emailIDs: emailIDs)
                             }
                         },
                         onDeleteThread: {
                             Task {
                                 let emailIDs = thread.emails.map { $0.id }
-                                await mailEngine.bulkDelete(emailIDs: emailIDs)
+                                _ = await mailEngine.bulkDelete(emailIDs: emailIDs)
                             }
                         },
                         onMarkThreadRead: {
                             Task {
                                 let emailIDs = thread.emails.map { $0.id }
-                                await mailEngine.bulkMarkRead(emailIDs: emailIDs)
+                                _ = await mailEngine.bulkMarkRead(emailIDs: emailIDs)
                             }
                         }
                     )

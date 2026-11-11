@@ -28,7 +28,7 @@ struct IntegrationsSettingsView: View {
                 // Calendar Integration
                 Section("Calendar Integration") {
                     Toggle("Enable Calendar Integration", isOn: $integrationManager.isCalendarEnabled)
-                        .onChange(of: integrationManager.isCalendarEnabled) { _ in
+                        .onChange(of: integrationManager.isCalendarEnabled) { _, _ in
                             integrationManager.saveSettings()
                         }
 
@@ -45,7 +45,7 @@ struct IntegrationsSettingsView: View {
                 // Reminders Integration
                 Section("Reminders Integration") {
                     Toggle("Enable Reminders Integration", isOn: $integrationManager.isRemindersEnabled)
-                        .onChange(of: integrationManager.isRemindersEnabled) { _ in
+                        .onChange(of: integrationManager.isRemindersEnabled) { _, _ in
                             integrationManager.saveSettings()
                         }
 
@@ -62,7 +62,7 @@ struct IntegrationsSettingsView: View {
                 // Notes Integration
                 Section("Notes Integration") {
                     Toggle("Enable Notes Integration", isOn: $integrationManager.isNotesEnabled)
-                        .onChange(of: integrationManager.isNotesEnabled) { _ in
+                        .onChange(of: integrationManager.isNotesEnabled) { _, _ in
                             integrationManager.saveSettings()
                         }
 
@@ -79,14 +79,14 @@ struct IntegrationsSettingsView: View {
                 // Webhook Integration
                 Section("Webhook Integration") {
                     Toggle("Enable Webhooks", isOn: $integrationManager.isWebhooksEnabled)
-                        .onChange(of: integrationManager.isWebhooksEnabled) { _ in
+                        .onChange(of: integrationManager.isWebhooksEnabled) { _, _ in
                             integrationManager.saveSettings()
                         }
 
                     TextField("Webhook URL", text: $integrationManager.webhookURL)
                         .textFieldStyle(.roundedBorder)
                         .disabled(!integrationManager.isWebhooksEnabled)
-                        .onChange(of: integrationManager.webhookURL) { _ in
+                        .onChange(of: integrationManager.webhookURL) { _, _ in
                             integrationManager.saveSettings()
                         }
 

@@ -26,7 +26,7 @@ struct SearchView: View {
                     .textFieldStyle(.plain)
                     .foregroundColor(.white)
                     .font(.title3)
-                    .onChange(of: searchManager.filters.query) { _ in
+                    .onChange(of: searchManager.filters.query) { _, _ in
                         searchManager.search(in: mailEngine.emails)
                     }
 

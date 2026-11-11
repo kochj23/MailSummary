@@ -21,6 +21,8 @@ class MailEngine: ObservableObject {
     @Published var categories: [CategorySummary] = []
     @Published var stats: MailboxStats = MailboxStats(totalEmails: 0, unreadEmails: 0, todayEmails: 0, highPriorityEmails: 0, actionsCount: 0)
     @Published var aiSummary: String = ""
+    /// Where the mailbox summary came from: "AI · Ollama (model)" or "Built-in".
+    @Published var aiSummarySource: String = ""
     @Published var isScanning: Bool = false
     @Published var isCategorizingWithAI: Bool = false
     @Published var aiProgress: String = ""
@@ -212,10 +214,11 @@ class MailEngine: ObservableObject {
     }
 
     private func generateAISummary() async {
-        let summary = await categorizer.generateOverallSummary(emails: emails, stats: stats)
+        let result = await categorizer.overallSummary(emails: emails, stats: stats)
 
         await MainActor.run {
-            self.aiSummary = summary
+            self.aiSummary = result.value
+            self.aiSummarySource = result.source.label
         }
     }
 

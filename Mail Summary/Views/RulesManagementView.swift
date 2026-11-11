@@ -148,7 +148,7 @@ struct RuleCard: View {
             HStack {
                 Toggle("", isOn: .constant(rule.isEnabled))
                     .labelsHidden()
-                    .onChange(of: rule.isEnabled) { _ in onToggle() }
+                    .onChange(of: rule.isEnabled) { _, _ in onToggle() }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(rule.name)

@@ -2,27 +2,29 @@
 //  AICategorizationEngine.swift
 //  Mail Summary
 //
-//  AI-powered email categorization and analysis with graceful fallback
-//  Uses AIBackendManager (Ollama, TinyLLM, etc.)
+//  AI-powered email categorization and analysis with graceful fallback.
+//  AI goes through NovaAIKit (AppAI.shared): AI on/off, Auto failover, retries, validation. Every feature has a
+//  built-in (keyword/rule/template) result used when AI is off, unreachable, or returns something invalid.
 //  Created by Jordan Koch on 2026-01-22
-//  Updated by Jordan Koch on 2026-01-23 - Added real AI integration
+//  Updated 2026-11-11 - migrated to NovaAIKit 1.0.0
 //
 
 import Foundation
+import NovaAIKit
 
 @MainActor
 class AICategorizationEngine {
-    private let ai = AIBackendManager.shared
+    private let ai: NovaAI
+
+    init(ai: NovaAI? = nil) {
+        self.ai = ai ?? AppAI.shared
+    }
 
     // MARK: - AI Categorization
 
     /// Categorize email using DEEP AI analysis (falls back to keywords if AI unavailable)
     func categorizeEmail(_ email: Email) async -> Email.EmailCategory {
-        // Check if AI backend is available
-        guard ai.activeBackend != nil else {
-            return categorizeWithKeywords(email)
-        }
-
+        let fallback = Self.categorizeWithKeywords(email)
         let bodyPreview = email.body?.prefix(1000).description ?? ""
 
         let prompt = """
@@ -59,34 +61,19 @@ class AICategorizationEngine {
         }
         """
 
-        do {
-            let response = try await ai.generate(
-                prompt: prompt,
-                systemPrompt: "You are an expert email categorization system. Analyze content deeply, not just keywords. Always respond with valid JSON.",
-                temperature: 0.2,  // Very low for consistent categorization
-                maxTokens: 150
-            )
-
-            if let category = parseCategory(from: response) {
-                print("🤖 AI deep categorized as \(category.rawValue)")
-                return category
-            }
-
-            // JSON parsing failed, fall back
-            print("⚠️ AI response parsing failed, using keywords")
-            return categorizeWithKeywords(email)
-
-        } catch {
-            print("❌ AI categorization error: \(error.localizedDescription)")
-            return categorizeWithKeywords(email)
-        }
+        let request = NovaAIRequest(
+            prompt: prompt,
+            system: "You are an expert email categorization system. Analyze content deeply, not just keywords. Always respond with valid JSON.",
+            temperature: 0.2,  // Very low for consistent categorization
+            maxTokens: 150,
+            format: .json
+        )
+        return await ai.generate(request, validate: { try Self.parseCategory($0) }, fallback: { fallback }).value
     }
 
     /// Score email IMPORTANCE using deep AI analysis (falls back to rules if AI unavailable)
     func scoreEmailPriority(_ email: Email) async -> Int {
-        guard ai.activeBackend != nil else {
-            return scorePriorityWithRules(email)
-        }
+        let fallback = Self.scorePriorityWithRules(email)
 
         let bodyPreview = email.body?.prefix(1000).description ?? ""
 
@@ -134,33 +121,22 @@ class AICategorizationEngine {
         }
         """
 
-        do {
-            let response = try await ai.generate(
-                prompt: prompt,
-                systemPrompt: "You are an expert at determining email importance. Consider context, not just keywords. Deadlines and action items are most important. Always respond with valid JSON.",
-                temperature: 0.3,  // Low temperature for consistent scoring
-                maxTokens: 200
-            )
-
-            if let priority = parsePriority(from: response) {
-                print("🤖 AI importance scored as \(priority)")
-                return priority
-            }
-
-            print("⚠️ AI priority parsing failed, using rules")
-            return scorePriorityWithRules(email)
-
-        } catch {
-            print("❌ AI priority error: \(error.localizedDescription)")
-            return scorePriorityWithRules(email)
-        }
+        let request = NovaAIRequest(
+            prompt: prompt,
+            system: "You are an expert at determining email importance. Consider context, not just keywords. Deadlines and action items are most important. Always respond with valid JSON.",
+            temperature: 0.3,  // Low temperature for consistent scoring
+            maxTokens: 200,
+            format: .json
+        )
+        return await ai.generate(request, validate: { try Self.parsePriority($0) }, fallback: { fallback }).value
     }
 
-    /// Generate AI summary for single email
+    /// Generate a 1-2 sentence summary for a single email (built-in: the body's first sentences).
     func generateSummary(for email: Email) async -> String? {
-        guard ai.activeBackend != nil, let body = email.body else {
+        guard let body = email.body else {
             return nil
         }
+        let fallback = Self.basicEmailSummary(body: body)
 
         let prompt = """
         Create a brief 1-2 sentence summary of this email for someone who needs to quickly scan their inbox.
@@ -174,29 +150,22 @@ class AICategorizationEngine {
         Summary (concise, actionable, 1-2 sentences):
         """
 
-        do {
-            let summary = try await ai.generate(
-                prompt: prompt,
-                systemPrompt: "You are an email summarization expert. Create concise, useful summaries that highlight key information and action items.",
-                temperature: 0.5,
-                maxTokens: 100
-            )
-
-            let cleaned = summary.trimmingCharacters(in: .whitespacesAndNewlines)
-            print("🤖 AI summary generated: \(cleaned.prefix(50))...")
-            return cleaned
-
-        } catch {
-            print("❌ AI summary error: \(error.localizedDescription)")
-            return nil
-        }
+        let request = NovaAIRequest(
+            prompt: prompt,
+            system: "You are an email summarization expert. Create concise, useful summaries that highlight key information and action items.",
+            temperature: 0.5,
+            maxTokens: 100
+        )
+        let summary = await ai.text(request, validate: { try Self.validateShortText($0) }, fallback: { fallback }).value
+        return summary.isEmpty ? nil : summary
     }
 
     /// Extract action items from email using AI
     func extractActions(from email: Email) async -> [EmailAction] {
-        guard ai.activeBackend != nil, let body = email.body else {
+        guard let body = email.body else {
             return []
         }
+        let fallback = Self.extractActionsWithRules(subject: email.subject, body: body)
 
         let prompt = """
         Extract any action items, deadlines, or tasks from this email.
@@ -225,29 +194,24 @@ class AICategorizationEngine {
         Return empty array if no actions found: {"actions": []}
         """
 
-        do {
-            let response = try await ai.generate(
-                prompt: prompt,
-                systemPrompt: "You are an expert at extracting action items and deadlines from emails. Always respond with valid JSON.",
-                temperature: 0.3,
-                maxTokens: 500
-            )
-
-            let actions = parseActions(from: response)
-            print("🤖 AI extracted \(actions.count) actions")
-            return actions
-
-        } catch {
-            print("❌ AI action extraction error: \(error.localizedDescription)")
-            return []
-        }
+        let request = NovaAIRequest(
+            prompt: prompt,
+            system: "You are an expert at extracting action items and deadlines from emails. Always respond with valid JSON.",
+            temperature: 0.3,
+            maxTokens: 500,
+            format: .json
+        )
+        return await ai.generate(request, validate: { try Self.parseActions($0) }, fallback: { fallback }).value
     }
 
     /// Generate overall mailbox summary using AI
     func generateOverallSummary(emails: [Email], stats: MailboxStats) async -> String {
-        guard ai.activeBackend != nil else {
-            return generateBasicSummary(emails: emails, stats: stats)
-        }
+        await overallSummary(emails: emails, stats: stats).value
+    }
+
+    /// Mailbox summary plus where it came from ("AI · Ollama (model)" / "Built-in").
+    func overallSummary(emails: [Email], stats: MailboxStats) async -> NovaAIResult<String> {
+        let fallback = Self.generateBasicSummary(emails: emails, stats: stats)
 
         let breakdown = """
         Total emails: \(stats.totalEmails)
@@ -273,132 +237,81 @@ class AICategorizationEngine {
         Be specific and actionable.
         """
 
-        do {
-            let summary = try await ai.generate(
-                prompt: prompt,
-                systemPrompt: "You are a helpful email assistant. Provide actionable mailbox summaries that highlight what's important.",
-                temperature: 0.6,
-                maxTokens: 150
-            )
+        let request = NovaAIRequest(
+            prompt: prompt,
+            system: "You are a helpful email assistant. Provide actionable mailbox summaries that highlight what's important. Only use the numbers you are given.",
+            temperature: 0.6,
+            maxTokens: 150
+        )
+        return await ai.text(request, validate: { try Self.validateGroundedSummary($0, source: breakdown) }, fallback: { fallback })
+    }
 
-            return summary.trimmingCharacters(in: .whitespacesAndNewlines)
+    // MARK: - Validators (reject by throwing NovaAIValidationError; clamp by returning a fixed value)
 
-        } catch {
-            print("❌ AI overall summary error: \(error.localizedDescription)")
-            return generateBasicSummary(emails: emails, stats: stats)
+    /// AI category reply → a known category. Unknown names are rejected (the keyword result is used instead).
+    nonisolated static func parseCategory(_ text: String) throws -> Email.EmailCategory {
+        struct Reply: Decodable { let category: String }
+        let reply = try NovaAIText.decode(Reply.self, from: text)
+        let normalized = reply.category.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard let category = Email.EmailCategory.allCases.first(where: { $0.rawValue.lowercased() == normalized }) else {
+            throw NovaAIValidationError("category must be one of: \(Email.EmailCategory.allCases.map(\.rawValue).joined(separator: ", "))")
+        }
+        return category
+    }
+
+    /// AI priority reply → 1...10 (clamped). Missing or non-numeric values are rejected.
+    nonisolated static func parsePriority(_ text: String) throws -> Int {
+        struct Reply: Decodable { let priority: Double }
+        let reply = try NovaAIText.decode(Reply.self, from: text)
+        guard reply.priority.isFinite else { throw NovaAIValidationError("priority must be a number from 1 to 10") }
+        return min(max(Int(reply.priority.rounded()), 1), 10)
+    }
+
+    /// AI sender importance → 0...1 (clamped).
+    nonisolated static func parseImportance(_ text: String) throws -> Double {
+        struct Reply: Decodable { let importance: Double }
+        let reply = try NovaAIText.decode(Reply.self, from: text)
+        guard reply.importance.isFinite else { throw NovaAIValidationError("importance must be a number from 0 to 1") }
+        return min(max(reply.importance, 0.0), 1.0)
+    }
+
+    /// Maximum action items accepted from one email.
+    nonisolated static let maxActions = 10
+
+    /// AI action list → at most `maxActions` items with non-empty text; unknown types become tasks.
+    nonisolated static func parseActions(_ text: String) throws -> [EmailAction] {
+        struct Item: Decodable { let type: String?; let text: String?; let date: String? }
+        struct Reply: Decodable { let actions: [Item] }
+        let reply = try NovaAIText.decode(Reply.self, from: text)
+        let formatter = ISO8601DateFormatter()
+        return reply.actions.prefix(maxActions).compactMap { item in
+            let text = NovaAIText.plain(item.text ?? "", max: 200)
+            guard !text.isEmpty else { return nil }
+            let type = EmailAction.ActionType(rawValue: (item.type ?? "").lowercased()) ?? .task
+            return EmailAction(type: type, text: text, date: item.date.flatMap { formatter.date(from: $0) })
         }
     }
 
-    // MARK: - JSON Parsing
-
-    /// Parse category from AI JSON response
-    private func parseCategory(from json: String) -> Email.EmailCategory? {
-        // Try to extract JSON
-        guard let jsonData = json.data(using: .utf8) else { return nil }
-
-        do {
-            if let dict = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
-               let categoryStr = dict["category"] as? String {
-                // Normalize and map to enum
-                let normalized = categoryStr.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-
-                switch normalized {
-                case "bills": return .bills
-                case "orders": return .orders
-                case "work": return .work
-                case "personal": return .personal
-                case "marketing": return .marketing
-                case "newsletters": return .newsletters
-                case "social": return .social
-                case "spam": return .spam
-                default: return .other
-                }
-            }
-        } catch {
-            // Try regex fallback
-            if let range = json.range(of: #""category"\s*:\s*"([^"]+)""#, options: .regularExpression) {
-                let categoryStr = String(json[range]).replacingOccurrences(of: "\"category\":", with: "")
-                    .replacingOccurrences(of: "\"", with: "")
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                return Email.EmailCategory(rawValue: categoryStr)
-            }
-        }
-
-        return nil
+    /// Short summaries: non-empty, plain text, at most 400 characters.
+    nonisolated static func validateShortText(_ text: String) throws -> String {
+        let plain = NovaAIText.plain(try NovaAI.nonEmpty(text), max: 400)
+        guard !plain.isEmpty else { throw NovaAIValidationError("empty reply") }
+        return plain
     }
 
-    /// Parse priority from AI JSON response
-    private func parsePriority(from json: String) -> Int? {
-        guard let jsonData = json.data(using: .utf8) else { return nil }
-
-        do {
-            if let dict = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
-               let priority = dict["priority"] as? Int {
-                return min(max(priority, 1), 10)  // Clamp to 1-10
-            }
-        } catch {
-            // Try regex fallback
-            if let range = json.range(of: #""priority"\s*:\s*(\d+)"#, options: .regularExpression) {
-                let priorityStr = String(json[range]).replacingOccurrences(of: "\"priority\":", with: "")
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                if let priority = Int(priorityStr) {
-                    return min(max(priority, 1), 10)
-                }
-            }
+    /// Mailbox summary: short plain text that invents no numbers (every figure must appear in `source`).
+    nonisolated static func validateGroundedSummary(_ text: String, source: String) throws -> String {
+        let plain = try validateShortText(text)
+        guard NovaAIText.grounded(plain, in: source) else {
+            throw NovaAIValidationError("use only the numbers given in the mailbox breakdown")
         }
-
-        return nil
+        return plain
     }
 
-    /// Parse actions array from AI JSON response
-    private func parseActions(from json: String) -> [EmailAction] {
-        guard let jsonData = json.data(using: .utf8) else { return [] }
+    // MARK: - Built-in Methods (keyword/rule based; used when AI is off, down or rejected)
 
-        do {
-            if let dict = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
-               let actionsArray = dict["actions"] as? [[String: Any]] {
-
-                var actions: [EmailAction] = []
-
-                for actionDict in actionsArray {
-                    guard let typeStr = actionDict["type"] as? String,
-                          let text = actionDict["text"] as? String else {
-                        continue
-                    }
-
-                    // Parse type
-                    let type: EmailAction.ActionType
-                    switch typeStr.lowercased() {
-                    case "deadline": type = .deadline
-                    case "meeting": type = .meeting
-                    case "task": type = .task
-                    case "reminder": type = .reminder
-                    default: type = .task
-                    }
-
-                    // Parse optional date
-                    var date: Date? = nil
-                    if let dateStr = actionDict["date"] as? String {
-                        let formatter = ISO8601DateFormatter()
-                        date = formatter.date(from: dateStr)
-                    }
-
-                    actions.append(EmailAction(type: type, text: text, date: date))
-                }
-
-                return actions
-            }
-        } catch {
-            print("⚠️ Failed to parse actions JSON: \(error)")
-        }
-
-        return []
-    }
-
-    // MARK: - Fallback Methods (Keyword-Based)
-
-    /// Categorize email using keyword matching (fallback when AI unavailable)
-    private func categorizeWithKeywords(_ email: Email) -> Email.EmailCategory {
+    /// Categorize email using keyword matching.
+    nonisolated static func categorizeWithKeywords(_ email: Email) -> Email.EmailCategory {
         let subject = email.subject.lowercased()
         let sender = email.sender.lowercased()
 
@@ -421,8 +334,8 @@ class AICategorizationEngine {
         return .other
     }
 
-    /// Score email priority using rules (fallback when AI unavailable)
-    private func scorePriorityWithRules(_ email: Email) -> Int {
+    /// Score email priority using rules.
+    nonisolated static func scorePriorityWithRules(_ email: Email) -> Int {
         let subject = email.subject.lowercased()
 
         if subject.contains("urgent") || subject.contains("asap") || subject.contains("today") {
@@ -444,8 +357,64 @@ class AICategorizationEngine {
         return 5
     }
 
-    /// Generate basic summary without AI
-    private func generateBasicSummary(emails: [Email], stats: MailboxStats) -> String {
+    /// First one or two sentences of the body (whitespace collapsed, max 240 characters).
+    nonisolated static func basicEmailSummary(body: String) -> String {
+        let flat = body.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+        var sentences: [String] = []
+        flat.enumerateSubstrings(in: flat.startIndex..., options: .bySentences) { sub, _, _, stop in
+            if let sub, !sub.trimmingCharacters(in: .whitespaces).isEmpty { sentences.append(sub.trimmingCharacters(in: .whitespaces)) }
+            if sentences.count >= 2 { stop = true }
+        }
+        let summary = sentences.isEmpty ? flat : sentences.joined(separator: " ")
+        return summary.count > 240 ? String(summary.prefix(239)) + "…" : summary
+    }
+
+    /// Keyword-based action items: one per line that mentions a deadline, meeting, payment or request.
+    nonisolated static func extractActionsWithRules(subject: String, body: String) -> [EmailAction] {
+        let rules: [(EmailAction.ActionType, [String])] = [
+            (.deadline, ["due ", "deadline", "by friday", "by monday", "by tomorrow", "expires"]),
+            (.meeting, ["meeting", "call at", "invite", "zoom", "teams link"]),
+            (.task, ["please ", "action required", "can you", "could you", "need you to"]),
+        ]
+        var actions: [EmailAction] = []
+        for line in ([subject] + body.components(separatedBy: .newlines)) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.count >= 6 else { continue }
+            let lower = trimmed.lowercased()
+            if let (type, _) = rules.first(where: { $0.1.contains(where: lower.contains) }) {
+                actions.append(EmailAction(type: type, text: String(trimmed.prefix(200)), date: nil))
+            }
+            if actions.count >= maxActions { break }
+        }
+        return actions
+    }
+
+    /// Rule-based actionable factors (keywords in subject/body).
+    nonisolated static func actionableFactorsWithRules(subject: String, body: String) -> ActionableFactors {
+        let text = (subject + "\n" + body).lowercased()
+        let urgent = ["urgent", "asap", "immediately", "today"].contains(where: text.contains)
+        return ActionableFactors(
+            hasDeadline: ["deadline", "due ", "expires", "by end of"].contains(where: text.contains),
+            hasMeeting: ["meeting", "invite", "calendar", "zoom"].contains(where: text.contains),
+            requiresResponse: text.contains("?") || ["please reply", "let me know", "respond"].contains(where: text.contains),
+            hasPayment: ["payment", "invoice", "amount due", "bill"].contains(where: text.contains),
+            urgencyScore: urgent ? 0.8 : 0.2
+        )
+    }
+
+    /// Heuristic sender importance: open rate, nudged by category.
+    nonisolated static func basicSenderImportance(openRate: Double, category: Email.EmailCategory?) -> Double {
+        var score = openRate.isFinite ? openRate : 0.5
+        switch category {
+        case .bills?, .work?, .personal?: score += 0.2
+        case .marketing?, .spam?, .social?: score -= 0.2
+        default: break
+        }
+        return min(max(score, 0.0), 1.0)
+    }
+
+    /// Generate basic mailbox summary without AI.
+    nonisolated static func generateBasicSummary(emails: [Email], stats: MailboxStats) -> String {
         let bills = emails.filter { $0.category == .bills }.count
         let work = emails.filter { $0.category == .work }.count
         let marketing = emails.filter { $0.category == .marketing }.count
@@ -476,14 +445,12 @@ class AICategorizationEngine {
 
     /// Analyze sender importance and reputation
     func analyzeSenderImportance(_ email: Email, emailHistory: [Email]) async -> Double {
-        guard ai.activeBackend != nil else {
-            return 0.5  // Neutral reputation
-        }
 
         // Get sender's email history
         let senderEmails = emailHistory.filter { $0.senderEmail == email.senderEmail }
         let replyRate = calculateReplyRate(for: email.senderEmail, in: emailHistory)
         let openRate = calculateOpenRate(for: email.senderEmail, in: emailHistory)
+        let fallback = Self.basicSenderImportance(openRate: openRate, category: email.category)
 
         let prompt = """
         Analyze this email sender's importance based on historical patterns.
@@ -513,31 +480,22 @@ class AICategorizationEngine {
         Importance: 0.0 = ignore, 0.5 = neutral, 1.0 = critical
         """
 
-        do {
-            let response = try await ai.generate(
-                prompt: prompt,
-                systemPrompt: "You are analyzing sender patterns to determine importance. Be data-driven.",
-                temperature: 0.3,
-                maxTokens: 150
-            )
-
-            if let dict = try? JSONSerialization.jsonObject(with: response.data(using: .utf8)!, options: []) as? [String: Any],
-               let importance = dict["importance"] as? Double {
-                return min(max(importance, 0.0), 1.0)
-            }
-
-            return 0.5
-
-        } catch {
-            return 0.5
-        }
+        let request = NovaAIRequest(
+            prompt: prompt,
+            system: "You are analyzing sender patterns to determine importance. Be data-driven.",
+            temperature: 0.3,
+            maxTokens: 150,
+            format: .json
+        )
+        return await ai.generate(request, validate: { try Self.parseImportance($0) }, fallback: { fallback }).value
     }
 
     /// Detect actionable items in email
     func detectActionableFactors(_ email: Email) async -> ActionableFactors {
-        guard ai.activeBackend != nil, let body = email.body else {
+        guard let body = email.body else {
             return ActionableFactors()
         }
+        let fallback = Self.actionableFactorsWithRules(subject: email.subject, body: body)
 
         let prompt = """
         Analyze this email for actionable factors.
@@ -566,19 +524,14 @@ class AICategorizationEngine {
         }
         """
 
-        do {
-            let response = try await ai.generate(
-                prompt: prompt,
-                systemPrompt: "You are an expert at extracting actionable information from emails. Be precise.",
-                temperature: 0.2,
-                maxTokens: 300
-            )
-
-            return parseActionableFactors(response)
-
-        } catch {
-            return ActionableFactors()
-        }
+        let request = NovaAIRequest(
+            prompt: prompt,
+            system: "You are an expert at extracting actionable information from emails. Be precise.",
+            temperature: 0.2,
+            maxTokens: 300,
+            format: .json
+        )
+        return await ai.generate(request, validate: { try Self.parseActionableFactors($0) }, fallback: { fallback }).value
     }
 
     // MARK: - Helper Methods
@@ -600,24 +553,25 @@ class AICategorizationEngine {
         return Double(opened) / Double(senderEmails.count)
     }
 
-    private func parseActionableFactors(_ json: String) -> ActionableFactors {
-        guard let data = json.data(using: .utf8),
-              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return ActionableFactors()
+    /// AI actionable factors → clamped (urgency 0...1).
+    nonisolated static func parseActionableFactors(_ text: String) throws -> ActionableFactors {
+        struct Reply: Decodable {
+            let hasDeadline: Bool?, hasMeeting: Bool?, requiresResponse: Bool?, hasPayment: Bool?, urgencyScore: Double?
         }
-
+        let r = try NovaAIText.decode(Reply.self, from: text)
+        let urgency = r.urgencyScore.map { $0.isFinite ? min(max($0, 0), 1) : 0 } ?? 0
         return ActionableFactors(
-            hasDeadline: dict["hasDeadline"] as? Bool ?? false,
-            hasMeeting: dict["hasMeeting"] as? Bool ?? false,
-            requiresResponse: dict["requiresResponse"] as? Bool ?? false,
-            hasPayment: dict["hasPayment"] as? Bool ?? false,
-            urgencyScore: dict["urgencyScore"] as? Double ?? 0.0
+            hasDeadline: r.hasDeadline ?? false,
+            hasMeeting: r.hasMeeting ?? false,
+            requiresResponse: r.requiresResponse ?? false,
+            hasPayment: r.hasPayment ?? false,
+            urgencyScore: urgency
         )
     }
 }
 
 /// Actionable factors detected in email
-struct ActionableFactors {
+struct ActionableFactors: Equatable, Sendable {
     var hasDeadline: Bool = false
     var hasMeeting: Bool = false
     var requiresResponse: Bool = false
@@ -644,10 +598,8 @@ struct ActionableFactors {
 extension AICategorizationEngine {
     /// Parse natural language query into structured SearchFilters
     func parseNaturalLanguageQuery(_ query: String) async -> SearchFilters {
-        guard ai.activeBackend != nil else {
-            // Fallback: Extract basic keywords
-            return extractKeywordFilters(from: query)
-        }
+        // Built-in: keyword extraction.
+        let fallback = Self.extractKeywordFilters(from: query)
 
         let prompt = """
         Parse this natural language search query into structured search filters for an email search system.
@@ -682,33 +634,28 @@ extension AICategorizationEngine {
         If a parameter isn't mentioned, omit it from the JSON. Return only valid JSON.
         """
 
-        do {
-            let response = try await ai.generate(
-                prompt: prompt,
-                systemPrompt: "You are an expert at parsing natural language queries for email search. Always respond with valid JSON.",
-                temperature: 0.2,
-                maxTokens: 300
-            )
-
-            return parseQueryResponse(response)
-        } catch {
-            print("❌ NL query parsing failed: \(error)")
-            return extractKeywordFilters(from: query)
-        }
+        let request = NovaAIRequest(
+            prompt: prompt,
+            system: "You are an expert at parsing natural language queries for email search. Always respond with valid JSON.",
+            temperature: 0.2,
+            maxTokens: 300,
+            format: .json
+        )
+        return await ai.generate(request, validate: { try Self.parseQueryResponse($0) }, fallback: { fallback }).value
     }
 
-    /// Parse AI response into SearchFilters
-    private func parseQueryResponse(_ json: String) -> SearchFilters {
+    /// AI query reply → SearchFilters (unknown categories dropped, priority clamped to 1...10). No JSON → rejected.
+    nonisolated static func parseQueryResponse(_ json: String) throws -> SearchFilters {
         var filters = SearchFilters()
 
-        guard let data = json.data(using: .utf8),
+        guard let payload = NovaAIText.jsonPayload(json), let data = payload.data(using: .utf8),
               let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return filters
+            throw NovaAIValidationError("The reply contained no JSON object.")
         }
 
         // Extract sender
         if let sender = dict["senderContains"] as? String {
-            filters.query = sender
+            filters.query = String(sender.prefix(200))
         }
 
         // Extract subject keywords
@@ -726,7 +673,7 @@ extension AICategorizationEngine {
 
         // Extract priority
         if let minPri = dict["minPriority"] as? Int {
-            filters.minPriority = minPri
+            filters.minPriority = min(max(minPri, 1), 10)
         }
 
         // Extract date range
@@ -748,7 +695,7 @@ extension AICategorizationEngine {
     }
 
     /// Parse date range string into Date tuple
-    private func parseDateRange(_ rangeStr: String) -> (Date, Date)? {
+    nonisolated static func parseDateRange(_ rangeStr: String) -> (Date, Date)? {
         let now = Date()
         let calendar = Calendar.current
 
@@ -789,7 +736,7 @@ extension AICategorizationEngine {
     }
 
     /// Fallback: Extract basic keyword filters
-    private func extractKeywordFilters(from query: String) -> SearchFilters {
+    nonisolated static func extractKeywordFilters(from query: String) -> SearchFilters {
         var filters = SearchFilters()
         let lowercased = query.lowercased()
 
@@ -835,9 +782,7 @@ extension AICategorizationEngine {
 extension AICategorizationEngine {
     /// Generate comprehensive email insights using AI and analytics data
     func generateInsights(emails: [Email], analytics: EmailAnalytics) async -> EmailInsights {
-        guard ai.activeBackend != nil else {
-            return generateBasicInsights(emails: emails, analytics: analytics)
-        }
+        let fallback = generateBasicInsights(emails: emails, analytics: analytics)
 
         // Prepare analytics summary for AI
         let summary = generateAnalyticsSummary(emails: emails, analytics: analytics)
@@ -869,19 +814,14 @@ extension AICategorizationEngine {
         }
         """
 
-        do {
-            let response = try await ai.generate(
-                prompt: prompt,
-                systemPrompt: "You are an AI email insights analyst. Provide actionable, data-driven insights. Be specific and helpful.",
-                temperature: 0.6,
-                maxTokens: 1000
-            )
-
-            return parseInsights(from: response)
-        } catch {
-            print("❌ AI insights generation failed: \(error)")
-            return generateBasicInsights(emails: emails, analytics: analytics)
-        }
+        let request = NovaAIRequest(
+            prompt: prompt,
+            system: "You are an AI email insights analyst. Provide actionable, data-driven insights. Be specific and helpful.",
+            temperature: 0.6,
+            maxTokens: 1000,
+            format: .json
+        )
+        return await ai.generate(request, validate: { try Self.parseInsights($0) }, fallback: { fallback }).value
     }
 
     /// Generate analytics summary for AI context
@@ -914,14 +854,16 @@ extension AICategorizationEngine {
         """
     }
 
-    /// Parse AI response into EmailInsights
-    private func parseInsights(from json: String) -> EmailInsights {
-        guard let data = json.data(using: .utf8),
+    /// AI insights reply → EmailInsights. A missing digest is rejected; priorities (1...10), confidences (0...1)
+    /// and list lengths (5 each) are clamped.
+    nonisolated static func parseInsights(_ json: String) throws -> EmailInsights {
+        guard let payload = NovaAIText.jsonPayload(json), let data = payload.data(using: .utf8),
               let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return EmailInsights()
+            throw NovaAIValidationError("The reply contained no JSON object.")
         }
 
-        let dailyDigest = dict["dailyDigest"] as? String ?? ""
+        let dailyDigest = NovaAIText.plain(dict["dailyDigest"] as? String ?? "", max: 600)
+        guard !dailyDigest.isEmpty else { throw NovaAIValidationError("dailyDigest is required") }
 
         // Parse trends
         var trends: [Trend] = []
@@ -948,7 +890,7 @@ extension AICategorizationEngine {
                     let actionable = recDict["actionable"] as? Bool ?? true
                     let suggestedAction = recDict["suggestedAction"] as? String
                     let category = recDict["category"] as? String
-                    recommendations.append(Recommendation(priority: priority, title: title, description: description, actionable: actionable, suggestedAction: suggestedAction, category: category))
+                    recommendations.append(Recommendation(priority: min(max(priority, 1), 10), title: title, description: description, actionable: actionable, suggestedAction: suggestedAction, category: category))
                 }
             }
         }
@@ -961,12 +903,13 @@ extension AICategorizationEngine {
                    let confidence = predDict["confidence"] as? Double,
                    let basis = predDict["basis"] as? String {
                     let category = predDict["category"] as? String
-                    predictions.append(Prediction(prediction: prediction, confidence: confidence, basis: basis, category: category))
+                    predictions.append(Prediction(prediction: prediction, confidence: confidence.isFinite ? min(max(confidence, 0), 1) : 0, basis: basis, category: category))
                 }
             }
         }
 
-        return EmailInsights(dailyDigest: dailyDigest, trends: trends, recommendations: recommendations, predictions: predictions)
+        return EmailInsights(dailyDigest: dailyDigest, trends: Array(trends.prefix(5)),
+                             recommendations: Array(recommendations.prefix(5)), predictions: Array(predictions.prefix(5)))
     }
 
     /// Generate basic insights without AI

@@ -14,7 +14,7 @@ struct HTMLContentView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
-        config.preferences.javaScriptEnabled = false  // Disable JavaScript for security
+        config.defaultWebpagePreferences.allowsContentJavaScript = false  // Disable JavaScript for security
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.loadHTMLString(htmlWrapper, baseURL: nil)

@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import NovaAIKit
 
 @main
 struct MailSummaryApp: App {
@@ -31,7 +32,11 @@ struct MailSummaryApp: App {
         }
 
         Settings {
-            AIBackendSelectionView()
+            NovaAISettingsView(
+                ai: AppAI.shared,
+                footer: "When AI is off or unreachable, Mail Summary uses its built-in keyword categorization, rule-based priorities, template summaries and replies."
+            )
+            .frame(minWidth: 560, minHeight: 520)
         }
         #endif
     }
